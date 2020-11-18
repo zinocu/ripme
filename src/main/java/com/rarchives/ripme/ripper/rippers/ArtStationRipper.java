@@ -3,15 +3,19 @@ package com.rarchives.ripme.ripper.rippers;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import org.json.JSONObject;
 import org.jsoup.Connection;
 import org.jsoup.Connection.Method;
 import org.jsoup.Connection.Response;
 import com.rarchives.ripme.ripper.AbstractJSONRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 
 public class ArtStationRipper extends AbstractJSONRipper {
@@ -23,6 +27,7 @@ public class ArtStationRipper extends AbstractJSONRipper {
     private String projectName;
     private Integer projectIndex;
     private Integer projectPageNumber;
+    private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
 
     public ArtStationRipper(URL url) throws IOException {
         super(url);
@@ -60,7 +65,7 @@ public class ArtStationRipper extends AbstractJSONRipper {
             // URL points to user portfolio, use user's full name as GID
             String userInfoURL = "https://www.artstation.com/users/" + albumURL.getID() + "/quick.json";
             try {
-//                 groupData = Http.url(userInfoURL).getJSON();
+                // groupData = Http.url(userInfoURL).getJSON();
                 groupData = getJson(userInfoURL);
             } catch (IOException e) {
                 throw new MalformedURLException("Couldn't load JSON from " + userInfoURL);
@@ -138,13 +143,17 @@ public class ArtStationRipper extends AbstractJSONRipper {
     }
 
     @Override
-    protected List<String> getURLsFromJSON(JSONObject json) {
-        List<String> assetURLs = new ArrayList<>();
+    protected List<DownloadItem> getURLsFromJSON(JSONObject json) throws MalformedURLException {
+        List<DownloadItem> assetURLs = new ArrayList<>();
         JSONObject currentObject;
 
         // Update project name variable from JSON data. Used by downloadURL() to create
         // subfolders when input URL is URL_TYPE.USER_PORTFOLIO
         projectName = json.getString("title");
+        long publishedTime = 0;
+        try {
+            publishedTime = dateFormat.parse(json.getString("published_at")).getTime() / 1000;
+        } catch (ParseException e) {}
 
         for (int i = 0; i < json.getJSONArray("assets").length(); i++) {
             currentObject = json.getJSONArray("assets").getJSONObject(i);
@@ -153,15 +162,15 @@ public class ArtStationRipper extends AbstractJSONRipper {
                 // TODO: Find a way to rip external content.
                 // ArtStation hosts only image content, everything else (videos, 3D Models, etc)
                 // is hosted in other websites and displayed through embedded HTML5 players
-                assetURLs.add(currentObject.getString("image_url"));
+                assetURLs.add(new DownloadItem(new URL(currentObject.getString("image_url")), publishedTime));
             }
         }
 
         return assetURLs;
     }
-
+    
     @Override
-    protected void downloadURL(URL url, int index) {
+    protected void downloadURL(DownloadItem downloadItem, int index) {
         if (albumURL.getType() == URL_TYPE.USER_PORTFOLIO) {
             // Replace not allowed characters with underlines
             String folderName = projectName.replaceAll("[\\\\/:*?\"<>|]", "_");
@@ -171,9 +180,9 @@ public class ArtStationRipper extends AbstractJSONRipper {
             folderName = folderName.replaceAll("\\.+$", "");
 
             // Downloading multiple projects, separate each one in subfolders
-            addURLToDownload(url, "", folderName);
+            addURLToDownload(downloadItem, "", folderName);
         } else {
-            addURLToDownload(url);
+            addURLToDownload(downloadItem);
         }
     }
 
