@@ -13,6 +13,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 
 public class BcfakesRipper extends AbstractHTMLRipper {
@@ -65,19 +66,19 @@ public class BcfakesRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> imageURLs = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> imageURLs = new ArrayList<>();
         for (Element thumb : doc.select("div.ngg-gallery-thumbnail > a > img")) {
             String imageURL = thumb.attr("src");
             imageURL = imageURL.replace("thumbs/thumbs_", "");
-            imageURLs.add(imageURL);
+            imageURLs.add(new DownloadItem(new URL(imageURL), 0));
         }
         return imageURLs;
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index));
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index));
     }
 
 }
