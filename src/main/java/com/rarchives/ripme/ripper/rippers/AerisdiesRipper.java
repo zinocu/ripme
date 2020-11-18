@@ -3,7 +3,9 @@ package com.rarchives.ripme.ripper.rippers;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -14,13 +16,13 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 import java.util.HashMap;
 
 public class AerisdiesRipper extends AbstractHTMLRipper {
-
     private Map<String,String> cookies = new HashMap<>();
-
+    private SimpleDateFormat dateFormat = new SimpleDateFormat("MM.dd.yyyy");
 
     public AerisdiesRipper(URL url) throws IOException {
         super(url);
@@ -37,7 +39,7 @@ public class AerisdiesRipper extends AbstractHTMLRipper {
 
     @Override
     public String getGID(URL url) throws MalformedURLException {
-        Pattern p = Pattern.compile("^https?://www.aerisdies.com/html/lb/[a-z]*_(\\d+)_\\d\\.html");
+        Pattern p = Pattern.compile("^https?://(?:www\\.)?aerisdies.com/html/lb/[a-z]*_(\\d+)_\\d\\.html");
         Matcher m = p.matcher(url.toExternalForm());
         if (m.matches()) {
             return m.group(1);
@@ -68,22 +70,45 @@ public class AerisdiesRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document page) {
-        List<String> imageURLs = new ArrayList<>();
-        Elements albumElements = page.select("div.imgbox > a > img");
-            for (Element imageBox : albumElements) {
-                String imageUrl = imageBox.attr("src");
+    public List<DownloadItem> getURLsFromPage(Document page) throws MalformedURLException {
+        List<DownloadItem> imageURLs = new ArrayList<>();
+        Elements albumElements = page.select("div.imgbox > a");
+            for (Element imagePageLink : albumElements) {
+                String imagePageUrl = imagePageLink.attr("href");
+                long uploadTime = 0;
+                if (shouldGetUploadTime) {
+                    uploadTime = getUploadTimeFromURL(new URL(imagePageUrl));
+                }
+                
+                String imageUrl = imagePageLink.select("img").attr("src");
                 imageUrl = imageUrl.replaceAll("thumbnails", "images");
                 imageUrl = imageUrl.replaceAll("../../", "");
                 imageUrl = imageUrl.replaceAll("gif", "jpg");
-                imageURLs.add("http://www.aerisdies.com/" + imageUrl);
+                imageURLs.add(new DownloadItem(new URL("http://www.aerisdies.com/" + imageUrl), uploadTime));
             }
         return imageURLs;
     }
+    
+    protected long getUploadTimeFromURL(URL urlWithTime) {
+        try {
+            Document doc = Http.url(urlWithTime).get();
+            Elements elements = doc.getElementsContainingOwnText("Added On");
+            if (elements.size() > 0) {
+                String dateText = elements.first().nextElementSibling().text();
+                Date date = dateFormat.parse(dateText);
+                return date.getTime() / 1000;
+            }
+        } catch (Exception e) {
+            LOGGER.error("Could not get upload date for " + urlWithTime);
+            e.printStackTrace();
+        }
+        
+        return 0;
+    }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index), "", this.url.toExternalForm(), cookies);
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index), "", this.url.toExternalForm(), cookies);
     }
 
     @Override
