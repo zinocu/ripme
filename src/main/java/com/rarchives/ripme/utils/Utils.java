@@ -304,11 +304,12 @@ public class Utils {
      * Return the path of the url history file
      */
     public static String getURLHistoryFile() {
-        if (getConfigString("history.location", "").length() == 0) {
+    	String configLocation = getConfigString("history.location", "");
+        if (configLocation.length() == 0) {
             return getConfigDir() + File.separator + "url_history.txt";
-        } else {
-            return getConfigString("history.location", "");
         }
+        
+        return configLocation;
     }
 
     /**
