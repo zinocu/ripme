@@ -3,7 +3,9 @@ package com.rarchives.ripme.ripper.rippers;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -12,10 +14,16 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 
 public class AllporncomicRipper extends AbstractHTMLRipper {
-
+    // This ripper instance is guaranteed to only be ripping a chapter when getURLsFromPage() is called
+    // Each chapter only has one upload date, so store it here instead of retrieving multiple times
+    private long retrievedUploadTime;
+    private boolean hasRetrievedTime;
+    private SimpleDateFormat dateFormat = new SimpleDateFormat("MM.dd.yyyy");
+    
     public AllporncomicRipper(URL url) throws IOException {
         super(url);
     }
@@ -53,14 +61,38 @@ public class AllporncomicRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> result = new ArrayList<>();
-        for (Element el : doc.select(".wp-manga-chapter-img")) {
-            result.add(el.attr("src"));
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> result = new ArrayList<>();
+        
+        long uploadTime = retrievedUploadTime;
+        if (shouldGetUploadTime && !hasRetrievedTime) {
+            String urlLocation = url.toExternalForm();
+            int cutoffIndex = urlLocation.lastIndexOf("chapter-");
+            uploadTime = retrievedUploadTime = getUploadTimeFromURL(new URL(urlLocation.substring(0, cutoffIndex)));
+            hasRetrievedTime = true;
         }
+        
+        for (Element el : doc.select(".wp-manga-chapter-img")) {
+            result.add(new DownloadItem(new URL(el.attr("src")), uploadTime));
+        }
+        
         return result;
     }
-
+    
+    protected long getUploadTimeFromURL(URL urlWithTime) {
+        try {
+            Document doc = Http.url(urlWithTime).get();
+            String dateText = doc.select(".wp-manga-chapter > .chapter-release-date").text();
+            Date date = dateFormat.parse(dateText);
+            return date.getTime() / 1000;
+        } catch (Exception e) {
+            LOGGER.error("Could not get upload date for " + urlWithTime);
+            e.printStackTrace();
+        }
+        
+        return 0;
+    }
+    
     @Override
     public boolean hasQueueSupport() {
         return true;
@@ -83,7 +115,7 @@ public class AllporncomicRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index));
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index));
     }
 }
