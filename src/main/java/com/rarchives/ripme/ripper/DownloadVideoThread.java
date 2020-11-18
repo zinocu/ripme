@@ -24,15 +24,15 @@ class DownloadVideoThread extends Thread {
 
     private static final Logger logger = Logger.getLogger(DownloadVideoThread.class);
 
-    private URL url;
+    private DownloadItem downloadItem;
     private File saveAs;
     private String prettySaveAs;
     private AbstractRipper observer;
     private int retries;
 
-    public DownloadVideoThread(URL url, File saveAs, AbstractRipper observer) {
+    public DownloadVideoThread(DownloadItem downloadItem, File saveAs, AbstractRipper observer) {
         super();
-        this.url = url;
+        this.downloadItem = downloadItem;
         this.saveAs = saveAs;
         this.prettySaveAs = Utils.removeCWD(saveAs);
         this.observer = observer;
@@ -47,7 +47,7 @@ class DownloadVideoThread extends Thread {
         try {
             observer.stopCheck();
         } catch (IOException e) {
-            observer.downloadErrored(url, "Download interrupted");
+            observer.downloadErrored(downloadItem, "Download interrupted");
             return;
         }
         if (saveAs.exists()) {
@@ -55,45 +55,46 @@ class DownloadVideoThread extends Thread {
                 logger.info("[!] Deleting existing file" + prettySaveAs);
                 saveAs.delete();
             } else {
-                logger.info("[!] Skipping " + url + " -- file already exists: " + prettySaveAs);
-                observer.downloadExists(url, saveAs);
+                logger.info("[!] Skipping " + downloadItem.url + " -- file already exists: " + prettySaveAs);
+                observer.downloadExists(downloadItem, saveAs);
                 return;
             }
         }
 
         int bytesTotal, bytesDownloaded = 0;
         try {
-            bytesTotal = getTotalBytes(this.url);
+            bytesTotal = getTotalBytes(downloadItem.url);
         } catch (IOException e) {
-            logger.error("Failed to get file size at " + this.url, e);
-            observer.downloadErrored(this.url, "Failed to get file size of " + this.url);
+            logger.error("Failed to get file size at " + downloadItem.url, e);
+            observer.downloadErrored(downloadItem, "Failed to get file size of " + downloadItem.url);
             return;
         }
         observer.setBytesTotal(bytesTotal);
         observer.sendUpdate(STATUS.TOTAL_BYTES, bytesTotal);
-        logger.debug("Size of file at " + this.url + " = " + bytesTotal + "b");
-
+        logger.debug("Size of file at " + downloadItem.url + " = " + bytesTotal + "b");
+        
+        URL downloadUrl = downloadItem.url;
         int tries = 0; // Number of attempts to download
         do {
             InputStream bis = null; OutputStream fos = null;
             byte[] data = new byte[1024 * 256];
             int bytesRead;
             try {
-                logger.info("    Downloading file: " + url + (tries > 0 ? " Retry #" + tries : ""));
-                observer.sendUpdate(STATUS.DOWNLOAD_STARTED, url.toExternalForm());
+                logger.info("    Downloading file: " + downloadUrl + (tries > 0 ? " Retry #" + tries : ""));
+                observer.sendUpdate(STATUS.DOWNLOAD_STARTED, downloadUrl.toExternalForm());
 
                 // Setup HTTP request
                 HttpURLConnection huc;
-                if (this.url.toString().startsWith("https")) {
-                    huc = (HttpsURLConnection) this.url.openConnection();
+                if (downloadUrl.toString().startsWith("https")) {
+                    huc = (HttpsURLConnection) downloadUrl.openConnection();
                 }
                 else {
-                    huc = (HttpURLConnection) this.url.openConnection();
+                    huc = (HttpURLConnection) downloadUrl.openConnection();
                 }
                 huc.setInstanceFollowRedirects(true);
                 huc.setConnectTimeout(0); // Never timeout
                 huc.setRequestProperty("accept",  "*/*");
-                huc.setRequestProperty("Referer", this.url.toExternalForm()); // Sic
+                huc.setRequestProperty("Referer", downloadUrl.toExternalForm()); // Sic
                 huc.setRequestProperty("User-agent", AbstractRipper.USER_AGENT);
                 tries += 1;
                 logger.debug("Request properties: " + huc.getRequestProperties().toString());
@@ -105,7 +106,7 @@ class DownloadVideoThread extends Thread {
                     try {
                         observer.stopCheck();
                     } catch (IOException e) {
-                        observer.downloadErrored(url, "Download interrupted");
+                        observer.downloadErrored(downloadItem, "Download interrupted");
                         return;
                     }
                     fos.write(data, 0, bytesRead);
@@ -117,7 +118,7 @@ class DownloadVideoThread extends Thread {
                 fos.close();
                 break; // Download successful: break out of infinite loop
             } catch (IOException e) {
-                logger.error("[!] Exception while downloading file: " + url + " - " + e.getMessage(), e);
+                logger.error("[!] Exception while downloading file: " + downloadUrl + " - " + e.getMessage(), e);
             } finally {
                 // Close any open streams
                 try {
@@ -128,13 +129,13 @@ class DownloadVideoThread extends Thread {
                 } catch (IOException e) { }
             }
             if (tries > this.retries) {
-                logger.error("[!] Exceeded maximum retries (" + this.retries + ") for URL " + url);
-                observer.downloadErrored(url, "Failed to download " + url.toExternalForm());
+                logger.error("[!] Exceeded maximum retries (" + this.retries + ") for URL " + downloadUrl);
+                observer.downloadErrored(downloadItem, "Failed to download " + downloadUrl.toExternalForm());
                 return;
             }
         } while (true);
-        observer.downloadCompleted(url, saveAs);
-        logger.info("[+] Saved " + url + " as " + this.prettySaveAs);
+        observer.downloadCompleted(downloadItem, saveAs);
+        logger.info("[+] Saved " + downloadUrl + " as " + this.prettySaveAs);
     }
 
     /**
@@ -147,7 +148,7 @@ class DownloadVideoThread extends Thread {
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod("HEAD");
         conn.setRequestProperty("accept",  "*/*");
-        conn.setRequestProperty("Referer", this.url.toExternalForm()); // Sic
+        conn.setRequestProperty("Referer", this.downloadItem.url.toExternalForm()); // Sic
         conn.setRequestProperty("User-agent", AbstractRipper.USER_AGENT);
         return conn.getContentLength();
     }

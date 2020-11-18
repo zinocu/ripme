@@ -5,14 +5,16 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
 
 public class RipperDownloadHistory {
     protected static final Logger LOGGER = Logger.getLogger(RipperDownloadHistory.class);
-    private final ConcurrentHashMap<String, RipperHistoryItem> historyItems = new ConcurrentHashMap<>();
+    private final Map<String, RipperHistoryItem> historyItems = Collections.synchronizedMap(new HashMap<String, RipperHistoryItem>());
     private final File urlHistoryFile;
     private boolean hasCreatedFile;
     

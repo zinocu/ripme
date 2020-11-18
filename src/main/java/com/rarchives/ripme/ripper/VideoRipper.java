@@ -11,7 +11,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Map;
 
-
 public abstract class VideoRipper extends AbstractRipper {
 
     private int bytesTotal = 1;
@@ -43,7 +42,7 @@ public abstract class VideoRipper extends AbstractRipper {
     }
 
     @Override
-    public boolean addURLToDownload(URL url, File saveAs) {
+    public boolean addURLToDownload(DownloadItem downloadItem, File saveAs) {
         if (Utils.getConfigBoolean("urls_only.save", false)) {
             // Output URL to file
             String urlFile = this.workingDir + File.separator + "urls.txt";
@@ -63,17 +62,17 @@ public abstract class VideoRipper extends AbstractRipper {
                 // Tests shouldn't download the whole video
                 // Just change this.url to the download URL so the test knows we found it.
                 LOGGER.debug("Test rip, found URL: " + url);
-                this.url = url;
+                this.url = downloadItem.url;
                 return true;
             }
-            threadPool.addThread(new DownloadVideoThread(url, saveAs, this));
+            threadPool.addThread(new DownloadVideoThread(downloadItem, saveAs, this));
         }
         return true;
     }
 
     @Override
-    public boolean addURLToDownload(URL url, File saveAs, String referrer, Map<String, String> cookies, Boolean getFileExtFromMIME) {
-        return addURLToDownload(url, saveAs);
+    public boolean addURLToDownload(DownloadItem downloadItem, File saveAs, String referrer, Map<String, String> cookies, Boolean getFileExtFromMIME) {
+        return addURLToDownload(downloadItem, saveAs);
     }
 
     /**
@@ -111,11 +110,11 @@ public abstract class VideoRipper extends AbstractRipper {
     /**
      * Runs if download successfully completed.
      *
-     * @param url    Target URL
+     * @param downloadItem    Target item with URL
      * @param saveAs Path to file, including filename.
      */
     @Override
-    public void downloadCompleted(URL url, File saveAs) {
+    public void downloadCompleted(DownloadItem downloadItem, File saveAs) {
         if (observer == null) {
             return;
         }
@@ -138,12 +137,12 @@ public abstract class VideoRipper extends AbstractRipper {
      * @param reason Reason why the download failed.
      */
     @Override
-    public void downloadErrored(URL url, String reason) {
+    public void downloadErrored(DownloadItem downloadItem, String reason) {
         if (observer == null) {
             return;
         }
 
-        observer.update(this, new RipStatusMessage(STATUS.DOWNLOAD_ERRORED, url + " : " + reason));
+        observer.update(this, new RipStatusMessage(STATUS.DOWNLOAD_ERRORED, downloadItem.url + " : " + reason));
         checkIfComplete();
     }
 
@@ -154,12 +153,12 @@ public abstract class VideoRipper extends AbstractRipper {
      * @param file Existing file
      */
     @Override
-    public void downloadExists(URL url, File file) {
+    public void downloadExists(DownloadItem downloadItem, File file) {
         if (observer == null) {
             return;
         }
 
-        observer.update(this, new RipStatusMessage(STATUS.DOWNLOAD_WARN, url + " already saved as " + file));
+        observer.update(this, new RipStatusMessage(STATUS.DOWNLOAD_WARN, downloadItem.url + " already saved as " + file));
         checkIfComplete();
     }
 

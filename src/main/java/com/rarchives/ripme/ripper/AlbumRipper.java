@@ -5,8 +5,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
 import com.rarchives.ripme.ui.RipStatusMessage;
@@ -19,11 +17,6 @@ import com.rarchives.ripme.utils.Utils;
  * For ripping delicious albums off the interwebz.
  */
 public abstract class AlbumRipper extends AbstractRipper {
-
-    private Map<URL, File> itemsPending = Collections.synchronizedMap(new HashMap<URL, File>());
-    private Map<URL, File> itemsCompleted = Collections.synchronizedMap(new HashMap<URL, File>());
-    private Map<URL, String> itemsErrored = Collections.synchronizedMap(new HashMap<URL, String>());
-
     protected AlbumRipper(URL url) throws IOException {
         super(url);
     }
@@ -50,35 +43,35 @@ public abstract class AlbumRipper extends AbstractRipper {
     /**
      * Queues multiple URLs of single images to download from a single Album URL
      */
-    public boolean addURLToDownload(URL url, File saveAs, String referrer, Map<String,String> cookies, Boolean getFileExtFromMIME) {
-            // Only download one file if this is a test.
+    public boolean addURLToDownload(DownloadItem downloadItem, File saveAs, String referrer, Map<String,String> cookies, Boolean getFileExtFromMIME) {
+        // Only download one file if this is a test.
         if (super.isThisATest() &&
                 (itemsPending.size() > 0 || itemsCompleted.size() > 0 || itemsErrored.size() > 0)) {
             stop();
             return false;
         }
         if (!allowDuplicates()
-                && ( itemsPending.containsKey(url)
-                  || itemsCompleted.containsKey(url)
-                  || itemsErrored.containsKey(url) )) {
+                && ( itemsPending.containsKey(downloadItem)
+                  || itemsCompleted.containsKey(downloadItem)
+                  || itemsErrored.containsKey(downloadItem) )) {
             // Item is already downloaded/downloading, skip it.
-            LOGGER.info("[!] Skipping " + url + " -- already attempted: " + Utils.removeCWD(saveAs));
+            LOGGER.info("[!] Skipping " + downloadItem.url + " -- already attempted: " + Utils.removeCWD(saveAs));
             return false;
         }
         if (Utils.getConfigBoolean("urls_only.save", false)) {
             // Output URL to file
             String urlFile = this.workingDir + File.separator + "urls.txt";
             try (FileWriter fw = new FileWriter(urlFile, true)) {
-                fw.write(url.toExternalForm());
+                fw.write(downloadItem.url.toExternalForm());
                 fw.write(System.lineSeparator());
-                itemsCompleted.put(url, new File(urlFile));
+                itemsCompleted.put(downloadItem, new File(urlFile));
             } catch (IOException e) {
                 LOGGER.error("Error while writing to " + urlFile, e);
             }
         }
         else {
-            itemsPending.put(url, saveAs);
-            DownloadFileThread dft = new DownloadFileThread(url,  saveAs,  this, getFileExtFromMIME);
+            itemsPending.put(downloadItem, saveAs);
+            DownloadFileThread dft = new DownloadFileThread(downloadItem,  saveAs,  this, getFileExtFromMIME);
             if (referrer != null) {
                 dft.setReferrer(referrer);
             }
@@ -92,8 +85,8 @@ public abstract class AlbumRipper extends AbstractRipper {
     }
 
     @Override
-    public boolean addURLToDownload(URL url, File saveAs) {
-        return addURLToDownload(url, saveAs, null, null, false);
+    public boolean addURLToDownload(DownloadItem downloadItem, File saveAs) {
+        return addURLToDownload(downloadItem, saveAs, null, null, false);
     }
 
     /**
@@ -104,24 +97,24 @@ public abstract class AlbumRipper extends AbstractRipper {
      * @return
      *      True on success
      */
-    protected boolean addURLToDownload(URL url) {
+    protected boolean addURLToDownload(DownloadItem downloadItem) {
         // Use empty prefix and empty subdirectory
-        return addURLToDownload(url, "", "");
+        return addURLToDownload(downloadItem, "", "");
     }
 
     @Override
     /**
      * Cleans up & tells user about successful download
      */
-    public void downloadCompleted(URL url, File saveAs) {
+    public void downloadCompleted(DownloadItem downloadItem, File saveAs) {
         if (observer == null) {
             return;
         }
         try {
             String path = Utils.removeCWD(saveAs);
             RipStatusMessage msg = new RipStatusMessage(STATUS.DOWNLOAD_COMPLETE, path);
-            itemsPending.remove(url);
-            itemsCompleted.put(url, saveAs);
+            itemsPending.remove(downloadItem);
+            itemsCompleted.put(downloadItem, saveAs);
             observer.update(this, msg);
 
             checkIfComplete();
@@ -134,13 +127,13 @@ public abstract class AlbumRipper extends AbstractRipper {
     /**
      * Cleans up & tells user about failed download.
      */
-    public void downloadErrored(URL url, String reason) {
+    public void downloadErrored(DownloadItem downloadItem, String reason) {
         if (observer == null) {
             return;
         }
-        itemsPending.remove(url);
-        itemsErrored.put(url, reason);
-        observer.update(this, new RipStatusMessage(STATUS.DOWNLOAD_ERRORED, url + " : " + reason));
+        itemsPending.remove(downloadItem);
+        itemsErrored.put(downloadItem, reason);
+        observer.update(this, new RipStatusMessage(STATUS.DOWNLOAD_ERRORED, downloadItem.url + " : " + reason));
 
         checkIfComplete();
     }
@@ -150,14 +143,14 @@ public abstract class AlbumRipper extends AbstractRipper {
      * Tells user that a single file in the album they wish to download has
      * already been downloaded in the past.
      */
-    public void downloadExists(URL url, File file) {
+    public void downloadExists(DownloadItem downloadItem, File file) {
         if (observer == null) {
             return;
         }
 
-        itemsPending.remove(url);
-        itemsCompleted.put(url, file);
-        observer.update(this, new RipStatusMessage(STATUS.DOWNLOAD_WARN, url + " already saved as " + file.getAbsolutePath()));
+        itemsPending.remove(downloadItem);
+        itemsCompleted.put(downloadItem, file);
+        observer.update(this, new RipStatusMessage(STATUS.DOWNLOAD_WARN, downloadItem.url + " already saved as " + file.getAbsolutePath()));
 
         checkIfComplete();
     }

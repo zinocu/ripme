@@ -8,11 +8,9 @@ import java.net.URLConnection;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.ResourceBundle;
 
 import javax.net.ssl.HttpsURLConnection;
 
-import com.rarchives.ripme.ui.MainWindow;
 import org.apache.log4j.Logger;
 import org.jsoup.HttpStatusException;
 
@@ -29,7 +27,7 @@ class DownloadFileThread extends Thread {
     private String referrer = "";
     private Map<String, String> cookies = new HashMap<>();
 
-    private URL url;
+    private DownloadItem downloadItem;
     private File saveAs;
     private String prettySaveAs;
     private AbstractRipper observer;
@@ -38,9 +36,9 @@ class DownloadFileThread extends Thread {
 
     private final int TIMEOUT;
 
-    public DownloadFileThread(URL url, File saveAs, AbstractRipper observer, Boolean getFileExtFromMIME) {
+    public DownloadFileThread(DownloadItem downloadItem, File saveAs, AbstractRipper observer, Boolean getFileExtFromMIME) {
         super();
-        this.url = url;
+        this.downloadItem = downloadItem;
         this.saveAs = saveAs;
         this.prettySaveAs = Utils.removeCWD(saveAs);
         this.observer = observer;
@@ -74,7 +72,7 @@ class DownloadFileThread extends Thread {
         try {
             observer.stopCheck();
         } catch (IOException e) {
-            observer.downloadErrored(url, Utils.getLocalizedString("download.interrupted"));
+            observer.downloadErrored(downloadItem, Utils.getLocalizedString("download.interrupted"));
             return;
         }
         if (saveAs.exists() && !observer.tryResumeDownload() && !getFileExtFromMIME
@@ -84,13 +82,13 @@ class DownloadFileThread extends Thread {
                 logger.info("[!] " + Utils.getLocalizedString("deleting.existing.file") + prettySaveAs);
                 saveAs.delete();
             } else {
-                logger.info("[!] " + Utils.getLocalizedString("skipping") + " " + url + " -- "
+                logger.info("[!] " + Utils.getLocalizedString("skipping") + " " + downloadItem.url + " -- "
                         + Utils.getLocalizedString("file.already.exists") + ": " + prettySaveAs);
-                observer.downloadExists(url, saveAs);
+                observer.downloadExists(downloadItem, saveAs);
                 return;
             }
         }
-        URL urlToDownload = this.url;
+        URL urlToDownload = this.downloadItem.url;
         boolean redirected = false;
         int tries = 0; // Number of attempts to download
         do {
@@ -99,11 +97,11 @@ class DownloadFileThread extends Thread {
             OutputStream fos = null;
             try {
                 logger.info("    Downloading file: " + urlToDownload + (tries > 0 ? " Retry #" + tries : ""));
-                observer.sendUpdate(STATUS.DOWNLOAD_STARTED, url.toExternalForm());
+                observer.sendUpdate(STATUS.DOWNLOAD_STARTED, urlToDownload.toExternalForm());
 
                 // Setup HTTP request
                 HttpURLConnection huc;
-                if (this.url.toString().startsWith("https")) {
+                if (urlToDownload.toString().startsWith("https")) {
                     huc = (HttpsURLConnection) urlToDownload.openConnection();
                 } else {
                     huc = (HttpURLConnection) urlToDownload.openConnection();
@@ -156,21 +154,21 @@ class DownloadFileThread extends Thread {
                 }
                 if (statusCode / 100 == 4) { // 4xx errors
                     logger.error("[!] " + Utils.getLocalizedString("nonretriable.status.code") + " " + statusCode
-                            + " while downloading from " + url);
-                    observer.downloadErrored(url, Utils.getLocalizedString("nonretriable.status.code") + " "
-                            + statusCode + " while downloading " + url.toExternalForm());
+                            + " while downloading from " + downloadItem.url);
+                    observer.downloadErrored(downloadItem, Utils.getLocalizedString("nonretriable.status.code") + " "
+                            + statusCode + " while downloading " + downloadItem.url.toExternalForm());
                     return; // Not retriable, drop out.
                 }
                 if (statusCode / 100 == 5) { // 5xx errors
-                    observer.downloadErrored(url, Utils.getLocalizedString("retriable.status.code") + " " + statusCode
-                            + " while downloading " + url.toExternalForm());
+                    observer.downloadErrored(downloadItem, Utils.getLocalizedString("retriable.status.code") + " " + statusCode
+                            + " while downloading " + downloadItem.url.toExternalForm());
                     // Throw exception so download can be retried
                     throw new IOException(Utils.getLocalizedString("retriable.status.code") + " " + statusCode);
                 }
                 if (huc.getContentLength() == 503 && urlToDownload.getHost().endsWith("imgur.com")) {
                     // Imgur image with 503 bytes is "404"
-                    logger.error("[!] Imgur image is 404 (503 bytes long): " + url);
-                    observer.downloadErrored(url, "Imgur image is 404: " + url.toExternalForm());
+                    logger.error("[!] Imgur image is 404 (503 bytes long): " + downloadItem.url);
+                    observer.downloadErrored(downloadItem, "Imgur image is 404: " + downloadItem.url.toExternalForm());
                     return;
                 }
 
@@ -180,7 +178,7 @@ class DownloadFileThread extends Thread {
                     bytesTotal = huc.getContentLength();
                     observer.setBytesTotal(bytesTotal);
                     observer.sendUpdate(STATUS.TOTAL_BYTES, bytesTotal);
-                    logger.debug("Size of file at " + this.url + " = " + bytesTotal + "b");
+                    logger.debug("Size of file at " + this.downloadItem.url + " = " + bytesTotal + "b");
                 }
 
                 // Save file
@@ -251,7 +249,7 @@ class DownloadFileThread extends Thread {
                         try {
                             observer.stopCheck();
                         } catch (IOException e) {
-                            observer.downloadErrored(url, Utils.getLocalizedString("download.interrupted"));
+                            observer.downloadErrored(downloadItem, Utils.getLocalizedString("download.interrupted"));
                             return;
                         }
                         fos.write(data, 0, bytesRead);
@@ -267,20 +265,20 @@ class DownloadFileThread extends Thread {
                 break; // Download successful: break out of infinite loop
             } catch (SocketTimeoutException timeoutEx) {
                 // Handle the timeout
-                logger.error("[!] " + url.toExternalForm() + " timedout!");
+                logger.error("[!] " + downloadItem.url.toExternalForm() + " timedout!");
                 // Download failed, break out of loop
                 break;
             } catch (HttpStatusException hse) {
                 logger.debug(Utils.getLocalizedString("http.status.exception"), hse);
                 logger.error("[!] HTTP status " + hse.getStatusCode() + " while downloading from " + urlToDownload);
                 if (hse.getStatusCode() == 404 && Utils.getConfigBoolean("errors.skip404", false)) {
-                    observer.downloadErrored(url,
-                            "HTTP status code " + hse.getStatusCode() + " while downloading " + url.toExternalForm());
+                    observer.downloadErrored(downloadItem,
+                            "HTTP status code " + hse.getStatusCode() + " while downloading " + downloadItem.url.toExternalForm());
                     return;
                 }
             } catch (IOException e) {
                 logger.debug("IOException", e);
-                logger.error("[!] " + Utils.getLocalizedString("exception.while.downloading.file") + ": " + url + " - "
+                logger.error("[!] " + Utils.getLocalizedString("exception.while.downloading.file") + ": " + downloadItem.url + " - "
                         + e.getMessage());
             } finally {
                 // Close any open streams
@@ -299,14 +297,14 @@ class DownloadFileThread extends Thread {
             }
             if (tries > this.retries) {
                 logger.error("[!] " + Utils.getLocalizedString("exceeded.maximum.retries") + " (" + this.retries
-                        + ") for URL " + url);
-                observer.downloadErrored(url,
-                        Utils.getLocalizedString("failed.to.download") + " " + url.toExternalForm());
+                        + ") for URL " + downloadItem.url);
+                observer.downloadErrored(downloadItem,
+                        Utils.getLocalizedString("failed.to.download") + " " + downloadItem.url.toExternalForm());
                 return;
             }
         } while (true);
-        observer.downloadCompleted(url, saveAs);
-        logger.info("[+] Saved " + url + " as " + this.prettySaveAs);
+        observer.downloadCompleted(downloadItem, saveAs);
+        logger.info("[+] Saved " + downloadItem.url + " as " + this.prettySaveAs);
     }
 
 }
