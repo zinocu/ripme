@@ -13,10 +13,10 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 
 public class BatoRipper extends AbstractHTMLRipper {
-
     public BatoRipper(URL url) throws IOException {
         super(url);
     }
@@ -101,8 +101,8 @@ public class BatoRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> result = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> result = new ArrayList<>();
         for (Element script : doc.select("script")) {
             if (script.data().contains("var images = ")) {
                 String s = script.data();
@@ -115,7 +115,8 @@ public class BatoRipper extends AbstractHTMLRipper {
                 String json = s.replaceAll("var images = ", "").replaceAll(";", "");
                 JSONObject images = new JSONObject(json);
                 for (int i = 1; i < images.length() +1; i++) {
-                    result.add(images.getString(Integer.toString(i)));
+                    String urlText = images.getString(Integer.toString(i));
+                    result.add(new DownloadItem(new URL(urlText), 0));
                 }
 
             }
@@ -124,7 +125,7 @@ public class BatoRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index));
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index));
     }
 }
