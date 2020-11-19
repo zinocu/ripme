@@ -1,6 +1,7 @@
 package com.rarchives.ripme.ripper.rippers;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.ripper.DownloadThreadPool;
 import com.rarchives.ripme.utils.Http;
 import com.rarchives.ripme.utils.RipUtils;
@@ -98,13 +99,13 @@ public class E621Ripper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document page) {
+    public List<DownloadItem> getURLsFromPage(Document page) throws MalformedURLException {
         Elements elements = page.select("article > a");
-        List<String> res = new ArrayList<>();
+        List<DownloadItem> res = new ArrayList<>();
 
         for (Element e : elements) {
             if (!e.attr("href").isEmpty()) {
-                res.add(e.attr("abs:href"));
+                res.add(new DownloadItem(new URL(e.attr("abs:href")), 0));
             }
         }
 
@@ -122,9 +123,9 @@ public class E621Ripper extends AbstractHTMLRipper {
     }
 
     @Override
-    public void downloadURL(final URL url, int index) {
+    public void downloadURL(DownloadItem downloadItem, int index) {
         // addURLToDownload(url, getPrefix(index));
-        e621ThreadPool.addThread(new E621FileThread(url, getPrefix(index)));
+        e621ThreadPool.addThread(new E621FileThread(downloadItem, getPrefix(index)));
     }
 
     private String getTerm(URL url) throws MalformedURLException {
@@ -193,23 +194,23 @@ public class E621Ripper extends AbstractHTMLRipper {
 
     public class E621FileThread extends Thread {
 
-        private URL url;
+        private DownloadItem downloadItem;
         private String index;
 
-        public E621FileThread(URL url, String index) {
-            this.url = url;
+        public E621FileThread(DownloadItem downloadItem, String index) {
+            this.downloadItem = downloadItem;
             this.index = index;
         }
 
         @Override
         public void run() {
             try {
-                String fullSizedImage = getFullSizedImage(url);
+                String fullSizedImage = getFullSizedImage(downloadItem.url);
                 if (fullSizedImage != null && !fullSizedImage.equals("")) {
-                    addURLToDownload(new URL(fullSizedImage), index);
+                    addURLToDownload(new DownloadItem(new URL(fullSizedImage), 0), index);
                 }
             } catch (IOException e) {
-                logger.error("Unable to get full sized image from " + url);
+                logger.error("Unable to get full sized image from " + downloadItem.url);
             }
         }
 

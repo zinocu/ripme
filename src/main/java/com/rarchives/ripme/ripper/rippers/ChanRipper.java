@@ -1,6 +1,7 @@
 package com.rarchives.ripme.ripper.rippers;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.ripper.rippers.ripperhelpers.ChanSite;
 import com.rarchives.ripme.utils.Http;
 import com.rarchives.ripme.utils.RipUtils;
@@ -210,8 +211,8 @@ public class ChanRipper extends AbstractHTMLRipper {
         return false;
     }
     @Override
-    public List<String> getURLsFromPage(Document page) {
-        List<String> imageURLs = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document page) throws MalformedURLException {
+        List<DownloadItem> imageURLs = new ArrayList<>();
         Pattern p; Matcher m;
         for (Element link : page.select("a")) {
             if (!link.hasAttr("href")) {
@@ -247,7 +248,7 @@ public class ChanRipper extends AbstractHTMLRipper {
                         LOGGER.debug("Already attempted: " + href);
                         continue;
                     }
-                    imageURLs.add(href);
+                    imageURLs.add(new DownloadItem(href));
                     if (isThisATest()) {
                         break;
                     }
@@ -261,10 +262,7 @@ public class ChanRipper extends AbstractHTMLRipper {
                     continue;
                 }
 
-                List<URL> urls = RipUtils.getFilesFromURL(originalURL);
-                for (URL imageurl : urls) {
-                    imageURLs.add(imageurl.toString());
-                }
+                imageURLs.addAll(RipUtils.getFilesFromURL(originalURL));
             }
 
             if (isStopped()) {
@@ -275,7 +273,7 @@ public class ChanRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index));
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index));
     }
 }

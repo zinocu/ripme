@@ -16,6 +16,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 
 public class StaRipper extends AbstractHTMLRipper {
@@ -54,8 +55,8 @@ public class StaRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> result = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> result = new ArrayList<>();
         for (Element el : doc.select("span > span > a.thumb")) {
             String thumbPageURL = el.attr("href");
             Document thumbPage = null;
@@ -71,7 +72,7 @@ public class StaRipper extends AbstractHTMLRipper {
                 }
                 String imageDownloadUrl = thumbPage.select("a.dev-page-download").attr("href");
                 if (imageDownloadUrl != null && !imageDownloadUrl.equals("")) {
-                    result.add(getImageLinkFromDLLink(imageDownloadUrl));
+                    result.add(new DownloadItem(getImageLinkFromDLLink(imageDownloadUrl)));
                 }
             }
 
@@ -106,7 +107,7 @@ public class StaRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index));
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index));
     }
 }

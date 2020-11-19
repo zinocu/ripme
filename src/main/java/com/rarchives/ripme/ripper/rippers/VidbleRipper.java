@@ -13,6 +13,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 
 public class VidbleRipper extends AbstractHTMLRipper {
@@ -51,12 +52,12 @@ public class VidbleRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
         return getURLsFromPageStatic(doc);
     }
 
-    private static List<String> getURLsFromPageStatic(Document doc) {
-        List<String> imageURLs = new ArrayList<>();
+    private static List<DownloadItem> getURLsFromPageStatic(Document doc) throws MalformedURLException {
+        List<DownloadItem> imageURLs = new ArrayList<>();
         Elements els = doc.select("#ContentPlaceHolder1_divContent");
         Elements imgs = els.select("img");
         for (Element img : imgs) {
@@ -64,23 +65,19 @@ public class VidbleRipper extends AbstractHTMLRipper {
             src = src.replaceAll("_[a-zA-Z]{3,5}", "");
 
             if (!src.equals("")) {
-                imageURLs.add(src);
+                imageURLs.add(new DownloadItem(src));
             }
         }
         return imageURLs;
    }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index));
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index));
     }
 
-    public static List<URL> getURLsFromPage(URL url) throws IOException {
-        List<URL> urls = new ArrayList<>();
+    public static List<DownloadItem> getURLsFromPage(URL url) throws IOException {
         Document doc = Http.url(url).get();
-        for (String stringURL : getURLsFromPageStatic(doc)) {
-            urls.add(new URL(stringURL));
-        }
-        return urls;
+        return getURLsFromPageStatic(doc);
     }
 }

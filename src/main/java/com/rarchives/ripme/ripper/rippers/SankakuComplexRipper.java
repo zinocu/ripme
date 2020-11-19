@@ -17,6 +17,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 
 public class SankakuComplexRipper extends AbstractHTMLRipper {
@@ -78,8 +79,8 @@ public class SankakuComplexRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> imageURLs = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> imageURLs = new ArrayList<>();
         // Image URLs are basically thumbnail URLs with a different domain, a simple
         // path replacement, and a ?xxxxxx post ID at the end (obtainable from the href)
         for (Element thumbSpan : doc.select("div.content > div > span.thumb > a")) {
@@ -90,7 +91,8 @@ public class SankakuComplexRipper extends AbstractHTMLRipper {
                     // Get the page the full sized image is on
                     Document subPage = Http.url(siteURL + postLink).get();
                     LOGGER.info("Checking page " + siteURL + postLink);
-                    imageURLs.add("https:" + subPage.select("div[id=stats] > ul > li > a[id=highres]").attr("href"));
+                    String link = "https:" + subPage.select("div[id=stats] > ul > li > a[id=highres]").attr("href");
+                    imageURLs.add(new DownloadItem(link));
                 } catch (IOException e) {
                     LOGGER.warn("Error while loading page " + postLink, e);
                 }
@@ -99,9 +101,9 @@ public class SankakuComplexRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
+    public void downloadURL(DownloadItem downloadItem, int index) {
         sleep(8000);
-        addURLToDownload(url, getPrefix(index));
+        addURLToDownload(downloadItem, getPrefix(index));
     }
 
     @Override

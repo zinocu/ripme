@@ -2,6 +2,7 @@ package com.rarchives.ripme.ripper.rippers;
 
 import com.rarchives.ripme.ripper.AbstractRipper;
 import com.rarchives.ripme.ripper.AbstractSingleFileRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -86,15 +87,15 @@ public class DuckmoviesRipper extends AbstractSingleFileRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> results = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> results = new ArrayList<>();
         String duckMoviesUrl = doc.select("iframe").attr("src");
         try {
             Document duckDoc = Http.url(new URL(duckMoviesUrl)).get();
             String videoURL = duckDoc.select("source").attr("src");
             // remove any white spaces so we can download the movie without a 400 error
             videoURL = videoURL.replaceAll(" ", "%20");
-            results.add(videoURL);
+            results.add(new DownloadItem(new URL(videoURL), 0));
         } catch (MalformedURLException e) {
             LOGGER.error(duckMoviesUrl + " is not a valid url");
         } catch (IOException e) {
@@ -130,8 +131,8 @@ public class DuckmoviesRipper extends AbstractSingleFileRipper {
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, "", "", null, null, AbstractRipper.getFileName(url, null, null).replaceAll("%20", "_"));
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, "", "", null, null, AbstractRipper.getFileName(url, null, null).replaceAll("%20", "_"));
     }
 
     @Override

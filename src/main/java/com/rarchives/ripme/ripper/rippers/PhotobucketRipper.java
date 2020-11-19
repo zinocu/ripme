@@ -16,6 +16,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 
 // TODO: Probably want to add queue support for cases like this:
@@ -185,7 +186,7 @@ public class PhotobucketRipper extends AbstractHTMLRipper {
 
 
     @Override
-    protected List<String> getURLsFromPage(Document page) {
+    protected List<DownloadItem> getURLsFromPage(Document page) throws MalformedURLException {
         JSONObject collectionData = getCollectionData(page);
         if (collectionData == null) {
             LOGGER.error("Unable to find JSON data at URL: " + page.location());
@@ -213,21 +214,21 @@ public class PhotobucketRipper extends AbstractHTMLRipper {
         return null;
     }
 
-    private List<String> getImageURLs(JSONObject collectionData){
-        List<String> results = new ArrayList<>();
+    private List<DownloadItem> getImageURLs(JSONObject collectionData) throws MalformedURLException {
+        List<DownloadItem> results = new ArrayList<>();
         JSONObject items = collectionData.getJSONObject("items");
         JSONArray objects = items.getJSONArray("objects");
         for (int i = 0; i < objects.length(); i++) {
             JSONObject object = objects.getJSONObject(i);
             String imgURL = object.getString("fullsizeUrl");
-            results.add(imgURL);
+            results.add(new DownloadItem(imgURL));
         }
         return results;
     }
 
     @Override
-    protected void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(++this.index), currAlbum.location,
+    protected void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(++this.index), currAlbum.location,
                 currAlbum.currPage.location(), currAlbum.cookies);
     }
 

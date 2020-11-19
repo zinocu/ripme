@@ -12,6 +12,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 
 public class CfakeRipper extends AbstractHTMLRipper {
@@ -68,8 +69,8 @@ public class CfakeRipper extends AbstractHTMLRipper {
             }
 
         @Override
-        public List<String> getURLsFromPage(Document doc) {
-            List<String> result = new ArrayList<>();
+        public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+            List<DownloadItem> result = new ArrayList<>();
                 for (Element el : doc.select("table.display > tbody > tr > td > table > tbody > tr > td > a")) {
                     if (el.attr("href").contains("upload")) {
                         return result;
@@ -78,14 +79,14 @@ public class CfakeRipper extends AbstractHTMLRipper {
                         // We remove the .md from images so we download the full size image
                         // not the thumbnail ones
                         imageSource = imageSource.replace("thumbs", "photos");
-                        result.add("http://cfake.com" + imageSource);
+                        result.add(new DownloadItem(new URL("http://cfake.com" + imageSource), 0));
                     }
                 }
                 return result;
         }
 
         @Override
-        public void downloadURL(URL url, int index) {
-            addURLToDownload(url, getPrefix(index));
+        public void downloadURL(DownloadItem downloadItem, int index) {
+            addURLToDownload(downloadItem, getPrefix(index));
         }
     }

@@ -15,6 +15,7 @@ import java.text.Normalizer;
 import java.text.Normalizer.Form;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 
 import org.jsoup.nodes.Document;
@@ -82,11 +83,11 @@ public class JabArchivesRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> result = new ArrayList<String>();
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> result = new ArrayList<>();
         for (Element el : doc.select("#contentMain img")) {
             String url = "https://jabarchives.com" + el.attr("src").replace("thumb", "large");
-            result.add(url);
+            result.add(new DownloadItem(url));
 
             String title = el.parent().attr("title");
             itemPrefixes.put(url, getSlug(title) + "_");
@@ -95,7 +96,7 @@ public class JabArchivesRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, itemPrefixes.get(url.toString()));
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, itemPrefixes.get(url.toString()));
     }
 }

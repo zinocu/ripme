@@ -133,7 +133,7 @@ public abstract class VideoRipper extends AbstractRipper {
     /**
      * Runs if the download errored somewhere.
      *
-     * @param url    Target URL
+     * @param downloadItem    Target URL
      * @param reason Reason why the download failed.
      */
     @Override
@@ -149,7 +149,7 @@ public abstract class VideoRipper extends AbstractRipper {
     /**
      * Runs if user tries to redownload an already existing File.
      *
-     * @param url  Target URL
+     * @param downloadItem  Target URL
      * @param file Existing file
      */
     @Override

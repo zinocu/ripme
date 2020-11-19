@@ -11,9 +11,9 @@ import java.util.regex.Pattern;
 import org.jsoup.Connection.Response;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 
 /**
@@ -62,14 +62,14 @@ public class ErotivRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> results = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> results = new ArrayList<>();
         for (Element el : doc.select("video[id=\"video-id\"] > source")) {
             if (el.hasAttr("src")) {
                 Pattern p = Pattern.compile("/uploads/[0-9]*\\.mp4");
                 Matcher m = p.matcher(el.attr("src"));
                 if (m.matches()) {
-                    results.add("https://erotiv.io" + el.attr("src"));
+                    results.add(new DownloadItem("https://erotiv.io" + el.attr("src")));
                 }
             }
 
@@ -79,8 +79,8 @@ public class ErotivRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index));
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index));
     }
 
     @Override

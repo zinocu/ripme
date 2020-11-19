@@ -9,6 +9,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
+
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
@@ -91,8 +93,8 @@ public class NfsfwRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    protected List<String> getURLsFromPage(Document page) {
-        List<String> imagePageURLs = getImagePageURLs(page);
+    protected List<DownloadItem> getURLsFromPage(Document page) throws MalformedURLException {
+        List<DownloadItem> imagePageURLs = getImagePageURLs(page);
 
         // Check if any sub-albums are present on this page
         List<String> subalbumURLs = getSubalbumURLs(page);
@@ -102,13 +104,13 @@ public class NfsfwRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    protected void downloadURL(URL url, int index) {
+    protected void downloadURL(DownloadItem downloadItem, int index) {
         // if we are now downloading a sub-album, all images in it
         // should be indexed starting from 0
         if (!this.currentDir.equals("")){
             index = ++this.index;
         }
-        NfsfwImageThread t = new NfsfwImageThread(url, currentDir, index);
+        NfsfwImageThread t = new NfsfwImageThread(downloadItem, currentDir, index);
         nfsfwThreadPool.addThread(t);
     }
 
@@ -157,7 +159,10 @@ public class NfsfwRipper extends AbstractHTMLRipper {
 
     @Override
     public boolean pageContainsAlbums(URL url) {
-        List<String> imageURLs = getImagePageURLs(fstPage);
+        List<DownloadItem> imageURLs = new ArrayList<>();
+        try {
+            imageURLs = getImagePageURLs(fstPage);
+        } catch (MalformedURLException e) {}
         List<String> subalbumURLs = getSubalbumURLs(fstPage);
         return imageURLs.isEmpty() && !subalbumURLs.isEmpty();
     }
@@ -169,16 +174,16 @@ public class NfsfwRipper extends AbstractHTMLRipper {
 
     // helper methods
 
-    private List<String> getImagePageURLs(Document page){
+    private List<DownloadItem> getImagePageURLs(Document page) throws MalformedURLException {
         // get image pages
         // NOTE: It might be possible to get the (non-thumbnail) image URL
         // without going to its page first as there seems to be a pattern
         // between the thumb and actual image URLs, but that is outside the
         // scope of the current issue being solved.
-        List<String> imagePageURLs = new ArrayList<>();
+        List<DownloadItem> imagePageURLs = new ArrayList<>();
         for (Element thumb : page.select("td.giItemCell > div > a")) {
             String imagePage = "http://nfsfw.com" + thumb.attr("href");
-            imagePageURLs.add(imagePage);
+            imagePageURLs.add(new DownloadItem(imagePage));
         }
         return imagePageURLs;
     }
@@ -197,13 +202,13 @@ public class NfsfwRipper extends AbstractHTMLRipper {
      * Helper class to find and download images found on "image" pages
      */
     private class NfsfwImageThread extends Thread {
-        private URL url;
+        private DownloadItem downloadItem;
         private String subdir;
         private int index;
 
-        NfsfwImageThread(URL url, String subdir, int index) {
+        NfsfwImageThread(DownloadItem downloadItem, String subdir, int index) {
             super();
-            this.url = url;
+            this.downloadItem = downloadItem;
             this.subdir = subdir;
             this.index = index;
         }
@@ -211,21 +216,21 @@ public class NfsfwRipper extends AbstractHTMLRipper {
         @Override
         public void run() {
             try {
-                Document doc = Http.url(this.url)
-                                   .referrer(this.url)
+                Document doc = Http.url(this.downloadItem.url)
+                                   .referrer(this.downloadItem.url)
                                    .get();
                 Elements images = doc.select(".gbBlock img");
                 if (images.isEmpty()) {
-                    LOGGER.error("Failed to find image at " + this.url);
+                    LOGGER.error("Failed to find image at " + this.downloadItem);
                     return;
                 }
                 String file = images.first().attr("src");
                 if (file.startsWith("/")) {
                     file = "http://nfsfw.com" + file;
                 }
-                addURLToDownload(new URL(file), getPrefix(index), this.subdir);
+                addURLToDownload(new DownloadItem(file), getPrefix(index), this.subdir);
             } catch (IOException e) {
-                LOGGER.error("[!] Exception while loading/parsing " + this.url, e);
+                LOGGER.error("[!] Exception while loading/parsing " + this.downloadItem, e);
             }
         }
     }

@@ -12,6 +12,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.ui.RipStatusMessage.STATUS;
 import com.rarchives.ripme.utils.Http;
 
@@ -137,14 +138,14 @@ public class ImagefapRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> imageURLs = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> imageURLs = new ArrayList<>();
         for (Element thumb : doc.select("#gallery img")) {
             if (!thumb.hasAttr("src") || !thumb.hasAttr("width")) {
                 continue;
             }
             String image = getFullSizedImage("https://www.imagefap.com" + thumb.parent().attr("href"));
-            imageURLs.add(image);
+            imageURLs.add(new DownloadItem(image));
             if (isThisATest()) {
                 break;
             }
@@ -153,9 +154,9 @@ public class ImagefapRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
+    public void downloadURL(DownloadItem downloadItem, int index) {
         // Send referrer for image downloads
-        addURLToDownload(url, getPrefix(index), "", this.url.toExternalForm(), null);
+        addURLToDownload(downloadItem, getPrefix(index), "", this.url.toExternalForm(), null);
     }
 
     @Override

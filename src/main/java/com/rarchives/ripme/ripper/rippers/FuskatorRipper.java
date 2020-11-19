@@ -16,6 +16,7 @@ import org.jsoup.Connection.Response;
 import org.jsoup.nodes.Document;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 
 public class FuskatorRipper extends AbstractHTMLRipper {
@@ -71,8 +72,8 @@ public class FuskatorRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> imageURLs = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> imageURLs = new ArrayList<>();
         JSONObject json;
 
         try {
@@ -91,15 +92,16 @@ public class FuskatorRipper extends AbstractHTMLRipper {
 
         JSONArray imageArray = json.getJSONArray("images");
         for (int i = 0; i < imageArray.length(); i++) {
-            imageURLs.add("https:" + imageArray.getJSONObject(i).getString("imageUrl"));
+            String link = "https:" + imageArray.getJSONObject(i).getString("imageUrl");
+            imageURLs.add(new DownloadItem(link));
         }
 
         return imageURLs;
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index));
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index));
     }
 
     private void getXAuthToken() throws IOException {

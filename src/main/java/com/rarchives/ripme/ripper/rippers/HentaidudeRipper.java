@@ -1,6 +1,7 @@
 package com.rarchives.ripme.ripper.rippers;
 
 import com.rarchives.ripme.ripper.AbstractSingleFileRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.ripper.DownloadThreadPool;
 import com.rarchives.ripme.utils.Http;
 
@@ -57,11 +58,11 @@ public class HentaidudeRipper extends AbstractSingleFileRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> result = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> result = new ArrayList<>();
         Matcher m1 = p1.matcher(url.toString());
         if (m1.matches()) {
-            result.add(url.toString());
+            result.add(new DownloadItem(url.toString()));
         }
 
         // Can add support for search page.
@@ -74,9 +75,9 @@ public class HentaidudeRipper extends AbstractSingleFileRipper {
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
+    public void downloadURL(DownloadItem downloadItem, int index) {
         // addURLToDownload(url, "", "", "", null, getVideoName(), "mp4");
-        hentaidudeThreadPool.addThread(new HentaidudeDownloadThread(url, index));
+        hentaidudeThreadPool.addThread(new HentaidudeDownloadThread(downloadItem, index));
     }
 
     @Override
@@ -86,19 +87,19 @@ public class HentaidudeRipper extends AbstractSingleFileRipper {
 
     private class HentaidudeDownloadThread extends Thread {
 
-        private URL url;
+        private DownloadItem downloadItem;
 
-        public HentaidudeDownloadThread(URL url, int index) {
-            this.url = url;
+        public HentaidudeDownloadThread(DownloadItem downloadItem, int index) {
+            this.downloadItem = downloadItem;
             // this.index = index;
         }
 
         @Override
         public void run() {
             try {
-                Document doc = Http.url(url).get();
+                Document doc = Http.url(downloadItem.url).get();
                 URL videoSourceUrl = new URL(getVideoUrl(doc));
-                addURLToDownload(videoSourceUrl, "", "", "", null, getVideoName(), "mp4");
+                addURLToDownload(new DownloadItem(videoSourceUrl), "", "", "", null, getVideoName(), "mp4");
             } catch (Exception e) {
                 LOGGER.error("Could not get video url for " + getVideoName(), e);
             }
@@ -106,9 +107,9 @@ public class HentaidudeRipper extends AbstractSingleFileRipper {
 
         private String getVideoName() {
             try {
-                return getGID(url);
+                return getGID(downloadItem.url);
             } catch (MalformedURLException e) {
-                LOGGER.error("Unable to get video title from " + url.toExternalForm());
+                LOGGER.error("Unable to get video title from " + downloadItem.url.toExternalForm());
                 e.printStackTrace();
             }
             return "unknown";

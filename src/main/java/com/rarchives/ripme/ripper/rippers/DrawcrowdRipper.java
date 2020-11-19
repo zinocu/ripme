@@ -13,6 +13,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 
 public class DrawcrowdRipper extends AbstractHTMLRipper {
@@ -71,21 +72,21 @@ public class DrawcrowdRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document page) {
-        List<String> imageURLs = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document page) throws MalformedURLException {
+        List<DownloadItem> imageURLs = new ArrayList<>();
         for (Element thumb : page.select("div.item.asset img")) {
             String image = thumb.attr("src");
             image = image
                     .replaceAll("/medium/", "/large/")
                     .replaceAll("/small/", "/large/");
-            imageURLs.add(image);
+            imageURLs.add(new DownloadItem(new URL(image), 0));
         }
         return imageURLs;
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index));
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index));
     }
 
 }

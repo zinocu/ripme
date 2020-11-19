@@ -9,10 +9,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.rarchives.ripme.ripper.AbstractSingleFileRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
+
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 
-import com.rarchives.ripme.ripper.VideoRipper;
 import com.rarchives.ripme.utils.Http;
 
 public class SpankbangRipper extends AbstractSingleFileRipper {
@@ -34,14 +35,14 @@ public class SpankbangRipper extends AbstractSingleFileRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> result = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> result = new ArrayList<>();
         Elements videos = doc.select(".video-js > source");
         if (videos.isEmpty()) {
             LOGGER.error("Could not find Embed code at " + url);
             return null;
         }
-        result.add(videos.attr("src"));
+        result.add(new DownloadItem(videos.attr("src")));
         return result;
     }
 
@@ -78,7 +79,7 @@ public class SpankbangRipper extends AbstractSingleFileRipper {
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index));
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index));
     }
 }

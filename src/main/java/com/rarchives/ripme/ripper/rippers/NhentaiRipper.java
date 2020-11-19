@@ -1,6 +1,7 @@
 package com.rarchives.ripme.ripper.rippers;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.ripper.DownloadThreadPool;
 import com.rarchives.ripme.ui.RipStatusMessage;
 import com.rarchives.ripme.utils.Http;
@@ -122,18 +123,19 @@ public class NhentaiRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document page) {
-        List<String> imageURLs = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document page) throws MalformedURLException {
+        List<DownloadItem> imageURLs = new ArrayList<>();
         Elements thumbs = page.select("a.gallerythumb > img");
         for (Element el : thumbs) {
-            imageURLs.add(el.attr("data-src").replaceAll("t\\.n", "i.n").replaceAll("t\\.", "."));
+            String link = el.attr("data-src").replaceAll("t\\.n", "i.n").replaceAll("t\\.", ".");
+            imageURLs.add(new DownloadItem(link));
         }
         return imageURLs;
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index), "", this.url.toExternalForm(), null);
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index), "", this.url.toExternalForm(), null);
     }
 
 

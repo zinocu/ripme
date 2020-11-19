@@ -12,6 +12,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 
 public class PicstatioRipper extends AbstractHTMLRipper {
@@ -66,18 +67,19 @@ public class PicstatioRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> result = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> result = new ArrayList<>();
         for (Element e : doc.select("img.img")) {
             String imageName = e.parent().attr("href");
-            LOGGER.info(getFullSizedImageFromURL(imageName.split("/")[2]));
-            result.add(getFullSizedImageFromURL(imageName.split("/")[2]));
+            String link = getFullSizedImageFromURL(imageName.split("/")[2]);
+            LOGGER.info(link);
+            result.add(new DownloadItem(link));
         }
         return result;
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index));
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index));
     }
 }

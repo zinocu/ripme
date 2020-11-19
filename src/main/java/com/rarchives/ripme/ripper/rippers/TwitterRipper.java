@@ -15,6 +15,7 @@ import org.json.JSONTokener;
 import org.jsoup.nodes.Document;
 
 import com.rarchives.ripme.ripper.AbstractJSONRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 import com.rarchives.ripme.utils.Utils;
 
@@ -231,8 +232,8 @@ public class TwitterRipper extends AbstractJSONRipper {
     }
 
     @Override
-    protected List<String> getURLsFromJSON(JSONObject json) {
-        List<String> urls = new ArrayList<>();
+    protected List<DownloadItem> getURLsFromJSON(JSONObject json) throws MalformedURLException {
+        List<DownloadItem> urls = new ArrayList<>();
         List<JSONObject> tweets = new ArrayList<>();
         JSONArray statuses = json.getJSONArray("tweets");
 
@@ -294,14 +295,14 @@ public class TwitterRipper extends AbstractJSONRipper {
                             }
                         }
                         if (urlToDownload != null) {
-                            urls.add(urlToDownload);
+                            urls.add(new DownloadItem(urlToDownload));
                         } else {
                             LOGGER.error("URLToDownload was null");
                         }
                     } else if (media.getString("type").equals("photo")) {
                         if (url.contains(".twimg.com/")) {
                             url += ":orig";
-                            urls.add(url);
+                            urls.add(new DownloadItem(url));
                         } else {
                             LOGGER.debug("Unexpected media_url: " + url);
                         }
@@ -314,8 +315,8 @@ public class TwitterRipper extends AbstractJSONRipper {
     }
 
     @Override
-    protected void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index));
+    protected void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index));
     }
 
 }

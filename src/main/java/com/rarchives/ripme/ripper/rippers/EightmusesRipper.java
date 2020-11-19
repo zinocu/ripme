@@ -18,6 +18,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.ui.RipStatusMessage.STATUS;
 import com.rarchives.ripme.utils.Http;
 
@@ -87,8 +88,8 @@ public class EightmusesRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document page) {
-        List<String> imageURLs = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document page) throws MalformedURLException {
+        List<DownloadItem> imageURLs = new ArrayList<>();
         int x = 1;
         // This contains the thumbnails of all images on the page
         Elements pageImages = page.getElementsByClass("c-tile");
@@ -101,7 +102,7 @@ public class EightmusesRipper extends AbstractHTMLRipper {
                     sendUpdate(STATUS.LOADING_RESOURCE, subUrl);
                     Document subPage = Http.url(subUrl).get();
                     // If the page below this one has images this line will download them
-                    List<String> subalbumImages = getURLsFromPage(subPage);
+                    List<DownloadItem> subalbumImages = getURLsFromPage(subPage);
                     LOGGER.info("Found " + subalbumImages.size() + " images in subalbum");
                 } catch (IOException e) {
                     LOGGER.warn("Error while loading subalbum " + subUrl, e);
@@ -124,7 +125,7 @@ public class EightmusesRipper extends AbstractHTMLRipper {
                         for (int i = 0; i != json.getJSONArray("pictures").length(); i++) {
                             image = "https://www.8muses.com/image/fl/" + json.getJSONArray("pictures").getJSONObject(i).getString("publicUri");
                             URL imageUrl = new URL(image);
-                            addURLToDownload(imageUrl, getPrefixShort(x), getSubdir(page.select("title").text()), this.url.toExternalForm(), cookies, "", null, true);
+                            addURLToDownload(new DownloadItem(imageUrl, 0), getPrefixShort(x), getSubdir(page.select("title").text()), this.url.toExternalForm(), cookies, "", null, true);
                             // X is our page index
                             x++;
                             if (isThisATest()) {
@@ -140,7 +141,7 @@ public class EightmusesRipper extends AbstractHTMLRipper {
                     // Not hosted on 8muses.
                     continue;
                 }
-                imageURLs.add(image);
+                imageURLs.add(new DownloadItem(new URL(image), 0));
                 if (isThisATest()) break;
             }
 
@@ -162,8 +163,8 @@ public class EightmusesRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index), "", this.url.toExternalForm(), cookies);
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index), "", this.url.toExternalForm(), cookies);
     }
 
     public String getPrefixLong(int index) {

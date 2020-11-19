@@ -12,6 +12,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 
 public class MeituriRipper extends AbstractHTMLRipper {
@@ -55,8 +56,8 @@ public class MeituriRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> imageURLs = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> imageURLs = new ArrayList<>();
         // Get number of images from the page
         // Then generate links according to that
         int numOfImages = 1;
@@ -75,13 +76,13 @@ public class MeituriRipper extends AbstractHTMLRipper {
 
         // Loop through and add images to the URL list
         for (int i = 1; i <= numOfImages; i++) {
-            imageURLs.add(baseURL + i + ".jpg");
+            imageURLs.add(new DownloadItem(baseURL + i + ".jpg"));
         }
         return imageURLs;
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index));
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index));
     }
 }

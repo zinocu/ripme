@@ -1,17 +1,12 @@
 package com.rarchives.ripme.ripper.rippers;
 
 import com.rarchives.ripme.ripper.AbstractJSONRipper;
-import com.rarchives.ripme.ui.History;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.ui.RipStatusMessage;
 import com.rarchives.ripme.utils.Http;
-import com.rarchives.ripme.utils.Utils;
-import org.apache.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.jsoup.Connection;
-import org.jsoup.nodes.Document;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -92,9 +87,9 @@ public class MangadexRipper extends AbstractJSONRipper {
     }
 
     @Override
-    protected List<String> getURLsFromJSON(JSONObject json) {
+    protected List<DownloadItem> getURLsFromJSON(JSONObject json) throws MalformedURLException {
         if(isSingleChapter){
-            List<String> assetURLs = new ArrayList<>();
+            List<DownloadItem> assetURLs = new ArrayList<>();
             JSONArray currentObject;
             String chapterHash;
             // Server is the cdn hosting the images.
@@ -103,8 +98,8 @@ public class MangadexRipper extends AbstractJSONRipper {
             server = json.getString("server");
             for (int i = 0; i < json.getJSONArray("page_array").length(); i++) {
                 currentObject = json.getJSONArray("page_array");
-
-                assetURLs.add(getImageUrl(chapterHash, currentObject.getString(i), server));
+                String link = getImageUrl(chapterHash, currentObject.getString(i), server);
+                assetURLs.add(new DownloadItem(link));
             }
             return assetURLs;
         }
@@ -121,7 +116,7 @@ public class MangadexRipper extends AbstractJSONRipper {
 
         }
 
-        List<String> assetURLs = new ArrayList<>();
+        List<DownloadItem> assetURLs = new ArrayList<>();
         JSONArray currentObject;
         String chapterHash;
         // Server is the cdn hosting the images.
@@ -141,8 +136,8 @@ public class MangadexRipper extends AbstractJSONRipper {
             server = chapterJSON.getString("server");
             for (int i = 0; i < chapterJSON.getJSONArray("page_array").length(); i++) {
                 currentObject = chapterJSON.getJSONArray("page_array");
-
-                assetURLs.add(getImageUrl(chapterHash, currentObject.getString(i), server));
+                String link = getImageUrl(chapterHash, currentObject.getString(i), server);
+                assetURLs.add(new DownloadItem(link));
             }
         }
 
@@ -150,10 +145,10 @@ public class MangadexRipper extends AbstractJSONRipper {
     }
 
     @Override
-    protected void downloadURL(URL url, int index) {
+    protected void downloadURL(DownloadItem downloadItem, int index) {
         // mangadex does not like rippers one bit, so we wait a good long while between requests
         sleep(1000);
-        addURLToDownload(url, getPrefix(index));
+        addURLToDownload(downloadItem, getPrefix(index));
     }
 
 

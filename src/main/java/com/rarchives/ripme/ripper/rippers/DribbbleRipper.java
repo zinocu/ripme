@@ -13,6 +13,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 
 public class DribbbleRipper extends AbstractHTMLRipper {
@@ -57,18 +58,18 @@ public class DribbbleRipper extends AbstractHTMLRipper {
         return Http.url(nextUrl).get();
     }
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> imageURLs = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> imageURLs = new ArrayList<>();
         for (Element thumb : doc.select("a.dribbble-link > picture > source")) {
             // nl skips thumbnails
             if ( thumb.attr("srcset").contains("teaser")) continue;
             String image = thumb.attr("srcset").replace("_1x", "");
-            imageURLs.add(image);
+            imageURLs.add(new DownloadItem(new URL(image), 0));
         }
         return imageURLs;
     }
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index));
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index));
     }
 }

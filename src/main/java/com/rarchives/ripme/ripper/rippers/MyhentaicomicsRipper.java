@@ -1,6 +1,7 @@
 package com.rarchives.ripme.ripper.rippers;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -95,40 +96,38 @@ public class MyhentaicomicsRipper extends AbstractHTMLRipper {
         // Find next page
         String nextUrl = "";
         Element elem = doc.select("a.ui-icon-right").first();
-            String nextPage = elem.attr("href");
-            Pattern p = Pattern.compile("/index.php/[a-zA-Z0-9_-]*\\?page=\\d");
-            Matcher m = p.matcher(nextPage);
-            if (m.matches()) {
-                nextUrl = "https://myhentaicomics.com" + m.group(0);
-                }
-            if (nextUrl.equals("")) {
-                throw new IOException("No more pages");
-            }
-            // Sleep for half a sec to avoid getting IP banned
-            sleep(500);
-            return Http.url(nextUrl).get();
+        String nextPage = elem.attr("href");
+        Pattern p = Pattern.compile("/index.php/[a-zA-Z0-9_-]*\\?page=\\d");
+        Matcher m = p.matcher(nextPage);
+        if (m.matches()) {
+            nextUrl = "https://myhentaicomics.com" + m.group(0);
         }
-
-
+        if (nextUrl.equals("")) {
+            throw new IOException("No more pages");
+        }
+        // Sleep for half a sec to avoid getting IP banned
+        sleep(500);
+        return Http.url(nextUrl).get();
+    }
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> result = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> result = new ArrayList<>();
         for (Element el : doc.select("img")) {
             String imageSource = el.attr("src");
             // This bool is here so we don't try and download the site logo
             if (!imageSource.startsWith("http://") && !imageSource.startsWith("https://")) {
-            // We replace thumbs with resizes so we can the full sized images
-            imageSource = imageSource.replace("thumbs", "resizes");
-            result.add("https://myhentaicomics.com" + imageSource);
-                }
+                // We replace thumbs with resizes so we can the full sized images
+                imageSource = imageSource.replace("thumbs", "resizes");
+                result.add(new DownloadItem("https://myhentaicomics.com" + imageSource));
             }
+        }
         return result;
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index));
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index));
     }
 
 

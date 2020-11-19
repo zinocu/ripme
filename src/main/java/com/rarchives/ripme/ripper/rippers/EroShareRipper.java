@@ -19,6 +19,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 
 /**
@@ -43,8 +44,8 @@ public class EroShareRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url);
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem);
     }
     @Override
     public boolean canRip(URL url) {
@@ -112,15 +113,14 @@ public class EroShareRipper extends AbstractHTMLRipper {
 
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> URLs = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> URLs = new ArrayList<>();
         //Pictures
         Elements imgs = doc.getElementsByTag("img");
         for (Element img : imgs) {
             if (img.hasClass("album-image")) {
                 String imageURL = img.attr("src");
-                imageURL = imageURL;
-                URLs.add(imageURL);
+                URLs.add(new DownloadItem(imageURL));
             }
         }
         //Videos
@@ -129,7 +129,7 @@ public class EroShareRipper extends AbstractHTMLRipper {
             if (vid.hasClass("album-video")) {
                 Elements source = vid.getElementsByTag("source");
                 String videoURL = source.first().attr("src");
-                URLs.add(videoURL);
+                URLs.add(new DownloadItem(videoURL));
             }
         }
         // Profile videos
@@ -148,7 +148,7 @@ public class EroShareRipper extends AbstractHTMLRipper {
                 if (vid.hasClass("album-video")) {
                     Elements source = vid.getElementsByTag("source");
                     String videoURL = source.first().attr("src");
-                    URLs.add(videoURL);
+                    URLs.add(new DownloadItem(videoURL));
                 }
             }
         }
@@ -195,7 +195,7 @@ public class EroShareRipper extends AbstractHTMLRipper {
         throw new MalformedURLException("eroshare album not found in " + url + ", expected https://eroshare.com/album or eroshae.com/album");
     }
 
-    public static List<URL> getURLs(URL url) throws IOException{
+    public static List<DownloadItem> getURLs(URL url) throws IOException{
 
         Response resp = Http.url(url)
                             .ignoreContentType()
@@ -203,13 +203,13 @@ public class EroShareRipper extends AbstractHTMLRipper {
 
         Document doc = resp.parse();
 
-        List<URL> URLs = new ArrayList<>();
+        List<DownloadItem> URLs = new ArrayList<>();
         //Pictures
         Elements imgs = doc.getElementsByTag("img");
         for (Element img : imgs) {
             if (img.hasClass("album-image")) {
                 String imageURL = img.attr("src");
-                URLs.add(new URL(imageURL));
+                URLs.add(new DownloadItem(imageURL));
             }
         }
         //Videos
@@ -218,7 +218,7 @@ public class EroShareRipper extends AbstractHTMLRipper {
             if (vid.hasClass("album-video")) {
                 Elements source = vid.getElementsByTag("source");
                 String videoURL = source.first().attr("src");
-                URLs.add(new URL(videoURL));
+                URLs.add(new DownloadItem(videoURL));
             }
         }
 

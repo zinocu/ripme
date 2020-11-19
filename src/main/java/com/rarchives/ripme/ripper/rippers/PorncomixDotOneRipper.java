@@ -12,6 +12,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 
 public class PorncomixDotOneRipper extends AbstractHTMLRipper {
@@ -48,21 +49,21 @@ public class PorncomixDotOneRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> result = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> result = new ArrayList<>();
         // We have 2 loops here to cover all the different album types
         for (Element el : doc.select(".dgwt-jg-item > a")) {
-            result.add(el.attr("href"));
+            result.add(new DownloadItem(el.attr("href")));
         }
         for (Element el : doc.select(".unite-gallery > img")) {
-            result.add(el.attr("data-image"));
+            result.add(new DownloadItem(el.attr("data-image")));
 
         }
         return result;
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index));
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index));
     }
 }

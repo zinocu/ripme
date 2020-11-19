@@ -18,6 +18,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 
 public class HentaifoundryRipper extends AbstractHTMLRipper {
@@ -131,13 +132,14 @@ public class HentaifoundryRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> imageURLs = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> imageURLs = new ArrayList<>();
         // this if is for ripping pdf stories
         if (url.toExternalForm().contains("/stories/")) {
             for (Element pdflink : doc.select("a.pdfLink")) {
                 LOGGER.info("grabbing " + "https://www.hentai-foundry.com" + pdflink.attr("href"));
-                imageURLs.add("https://www.hentai-foundry.com" + pdflink.attr("href"));
+                String link = "https://www.hentai-foundry.com" + pdflink.attr("href");
+                imageURLs.add(new DownloadItem(link));
             }
             return imageURLs;
         }
@@ -165,26 +167,28 @@ public class HentaifoundryRipper extends AbstractHTMLRipper {
             }
             // This is here for when the image is resized to a thumbnail because ripme doesn't report a screensize
             if (imagePage.select("div.boxbody > img.center").attr("src").contains("thumbs.")) {
-                imageURLs.add("https:" + imagePage.select("div.boxbody > img.center").attr("onclick").replace("this.src=", "").replace("'", "").replace("; $(#resize_message).hide();", ""));
+                String link = "https:" + imagePage.select("div.boxbody > img.center").attr("onclick").replace("this.src=", "").replace("'", "").replace("; $(#resize_message).hide();", "");
+                imageURLs.add(new DownloadItem(link));
             }
             else {
-                imageURLs.add("https:" + imagePage.select("div.boxbody > img.center").attr("src"));
+                String link = "https:" + imagePage.select("div.boxbody > img.center").attr("src");
+                imageURLs.add(new DownloadItem(link));
             }
         }
         return imageURLs;
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
+    public void downloadURL(DownloadItem downloadItem, int index) {
         // When downloading pdfs you *NEED* to end the cookies with the request or you just get the consent page
         if (url.toExternalForm().endsWith(".pdf")) {
-            addURLToDownload(url, getPrefix(index), "", this.url.toExternalForm(), cookies);
+            addURLToDownload(downloadItem, getPrefix(index), "", this.url.toExternalForm(), cookies);
         } else {
 //            If hentai-foundry.use_prefix is false the ripper will not add a numbered prefix to any images
             if (Utils.getConfigBoolean("hentai-foundry.use_prefix", true)) {
-                addURLToDownload(url, getPrefix(index));
+                addURLToDownload(downloadItem, getPrefix(index));
             } else {
-                addURLToDownload(url, "");
+                addURLToDownload(downloadItem, "");
             }
         }
     }

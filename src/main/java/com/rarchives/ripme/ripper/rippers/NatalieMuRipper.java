@@ -12,6 +12,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 
 public class NatalieMuRipper extends AbstractHTMLRipper {
@@ -85,8 +86,8 @@ public class NatalieMuRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document page) {
-        List<String> imageURLs = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document page) throws MalformedURLException {
+        List<DownloadItem> imageURLs = new ArrayList<>();
         Pattern p; Matcher m;
         //select all album thumbnails
         for (Element span : page.select(".NA_articleGallery span")) {
@@ -112,7 +113,7 @@ public class NatalieMuRipper extends AbstractHTMLRipper {
                     LOGGER.debug("Already attempted: " + imgUrl);
                     continue;
                 }
-                imageURLs.add(imgUrl);
+                imageURLs.add(new DownloadItem(imgUrl));
                 if (isThisATest()) {
                     break;
                 }
@@ -126,7 +127,7 @@ public class NatalieMuRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index), "", this.url.toString(), null);
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index), "", this.url.toString(), null);
     }
 }

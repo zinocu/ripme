@@ -16,6 +16,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Base64;
 import com.rarchives.ripme.utils.Http;
 
@@ -89,8 +90,8 @@ public class TwodgalleriesRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> imageURLs = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> imageURLs = new ArrayList<>();
         for (Element thumb : doc.select("div.hcaption > img")) {
             String image = thumb.attr("src");
             image = image.replace("/200H/", "/");
@@ -99,14 +100,14 @@ public class TwodgalleriesRipper extends AbstractHTMLRipper {
             } else if (image.startsWith("/")) {
                 image = "http://en.2dgalleries.com" + image;
             }
-            imageURLs.add(image);
+            imageURLs.add(new DownloadItem(image));
         }
         return imageURLs;
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index));
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index));
     }
 
     private void login() throws IOException {

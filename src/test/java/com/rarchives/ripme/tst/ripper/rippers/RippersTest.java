@@ -12,6 +12,7 @@ import org.apache.log4j.Logger;
 import org.junit.jupiter.api.Assertions;
 
 import com.rarchives.ripme.ripper.AbstractRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Utils;
 
 /**
@@ -64,7 +65,7 @@ public class RippersTest {
 
             ripper.setup();
             ripper.markAsTest();
-            List<String> foundUrls = ripper.getURLsFromPage(ripper.getFirstPage());
+            List<DownloadItem> foundUrls = ripper.getURLsFromPage(ripper.getFirstPage());
             Assertions.assertTrue(foundUrls.size() >= 1, "Failed to find single url on page " + ripper.getURL());
         } catch (IOException e) {
             if (e.getMessage().contains("Ripping interrupted")) {

@@ -13,10 +13,9 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.ripper.DownloadThreadPool;
 import com.rarchives.ripme.utils.Http;
-
-
 
 /**
  * @author Tushar
@@ -57,7 +56,7 @@ public class ListalRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document page) {
+    public List<DownloadItem> getURLsFromPage(Document page) throws MalformedURLException {
         if (urlType == UrlType.LIST) {
             // for url of type LIST, https://www.listal.com/list/my-list 
             return getURLsForListType(page);
@@ -69,8 +68,8 @@ public class ListalRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        listalThreadPool.addThread(new ListalImageDownloadThread(url, index));
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        listalThreadPool.addThread(new ListalImageDownloadThread(downloadItem, index));
     }
 
     @Override
@@ -137,12 +136,14 @@ public class ListalRipper extends AbstractHTMLRipper {
 
     /**
      * Returns the image urls for UrlType LIST.
+     * 
+     * @throws MalformedURLException
      */
-    private List<String> getURLsForListType(Document page) {
-        List<String> list = new ArrayList<>();
+    private List<DownloadItem> getURLsForListType(Document page) throws MalformedURLException {
+        List<DownloadItem> list = new ArrayList<>();
         for (Element e : page.select(".pure-g a[href*=viewimage]")) {
             //list.add("https://www.listal.com" + e.attr("href") + "h");
-            list.add(e.attr("abs:href") + "h");
+            list.add(new DownloadItem(e.attr("abs:href") + "h"));
         }
 
         return list;
@@ -150,11 +151,13 @@ public class ListalRipper extends AbstractHTMLRipper {
 
     /**
      * Returns the image urls for UrlType FOLDER.
+     * 
+     * @throws MalformedURLException
      */
-    private List<String> getURLsForFolderType(Document page) {
-        List<String> list = new ArrayList<>();
+    private List<DownloadItem> getURLsForFolderType(Document page) throws MalformedURLException {
+        List<DownloadItem> list = new ArrayList<>();
         for (Element e : page.select("#browseimagescontainer .imagewrap-outer a")) {
-            list.add(e.attr("abs:href") + "h");
+            list.add(new DownloadItem(e.attr("abs:href") + "h"));
         }
         return list;
     }
@@ -184,12 +187,12 @@ public class ListalRipper extends AbstractHTMLRipper {
 
     private class ListalImageDownloadThread extends Thread {
 
-        private URL url;
+        private DownloadItem downloadItem;
         private int index;
 
-        public ListalImageDownloadThread(URL url, int index) {
+        public ListalImageDownloadThread(DownloadItem downloadItem, int index) {
             super();
-            this.url = url;
+            this.downloadItem = downloadItem;
             this.index = index;
         }
 
@@ -200,23 +203,23 @@ public class ListalRipper extends AbstractHTMLRipper {
 
         public void getImage() {
             try {
-                Document doc = Http.url(url).get();
+                Document doc = Http.url(downloadItem.url).get();
 
                 String imageUrl = doc.getElementsByClass("pure-img").attr("src");
                 if (imageUrl != "") {
-                    addURLToDownload(new URL(imageUrl), getPrefix(index), "", null, null,
+                    addURLToDownload(new DownloadItem(imageUrl), getPrefix(index), "", null, null,
                             getImageName());
                 } else {
-                    LOGGER.error("Couldnt find image from url: " + url);
+                    LOGGER.error("Couldnt find image from url: " + downloadItem.url);
                 }
             } catch (IOException e) {
-                LOGGER.error("[!] Exception while downloading image: " + url, e);
+                LOGGER.error("[!] Exception while downloading image: " + downloadItem.url, e);
             }
         }
 
         public String getImageName() {
             // Returns the image number of the link if possible.
-            String name = this.url.toExternalForm();
+            String name = this.downloadItem.url.toExternalForm();
             try {
                 name = name.substring(name.lastIndexOf("/") + 1);
             } catch (Exception e) {

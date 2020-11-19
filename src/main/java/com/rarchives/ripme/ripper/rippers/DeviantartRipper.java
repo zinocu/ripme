@@ -1,6 +1,7 @@
 package com.rarchives.ripme.ripper.rippers;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.ripper.DownloadThreadPool;
 import com.rarchives.ripme.ui.RipStatusMessage.STATUS;
 import com.rarchives.ripme.utils.Http;
@@ -18,7 +19,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -28,7 +28,6 @@ import org.jsoup.Connection;
 import org.jsoup.Connection.Method;
 import org.jsoup.Connection.Response;
 import org.jsoup.HttpStatusException;
-import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
@@ -250,12 +249,13 @@ public class DeviantartRipper extends AbstractHTMLRipper {
 	 * https://www.deviantart.com/kageuri/art/RUBY-568396655
 	 * 
 	 * @param page Page of album with multiple images
+	 * @throws MalformedURLException
 	 * 
 	 */
 	@Override
-	protected List<String> getURLsFromPage(Document page) {
+	protected List<DownloadItem> getURLsFromPage(Document page) throws MalformedURLException {
 
-		List<String> result = new ArrayList<String>();
+		List<DownloadItem> result = new ArrayList<>();
 
 		Element div;
 		if (usingCatPath) {
@@ -268,7 +268,7 @@ public class DeviantartRipper extends AbstractHTMLRipper {
 		Elements links = div.select("a.torpedo-thumb-link");
 
 		for (Element el : links) {
-			result.add(el.attr("href"));
+			result.add(new DownloadItem(new URL(el.attr("href")), 0));
 
 		}
 
@@ -281,13 +281,13 @@ public class DeviantartRipper extends AbstractHTMLRipper {
 	/**
 	 * Starts new Thread to find download link + filename + filetype
 	 * 
-	 * @param url The URL to an image site.
+	 * @param downloadItem The URL to an image site.
 	 */
 	@Override
-	protected void downloadURL(URL url, int index) {
+	protected void downloadURL(DownloadItem downloadItem, int index) {
 		this.downloadCount += 1;
 		LOGGER.info("Downloading URL Number " + this.downloadCount);
-		LOGGER.info("Deviant Art URL: " + url.toExternalForm());
+		LOGGER.info("Deviant Art URL: " + downloadItem.url.toExternalForm());
 		try {
 			Response re = Http.url(urlWithParams(this.offset)).cookies(getDACookie()).referrer(referer)
 					.userAgent(userAgent).response();
@@ -297,7 +297,7 @@ public class DeviantartRipper extends AbstractHTMLRipper {
 		}
 
 		// Start Thread and add to pool.
-		DeviantartImageThread t = new DeviantartImageThread(url);
+		DeviantartImageThread t = new DeviantartImageThread(downloadItem);
 		deviantartThreadPool.addThread(t);
 
 	}
@@ -519,10 +519,10 @@ public class DeviantartRipper extends AbstractHTMLRipper {
 	 *
 	 */
 	private class DeviantartImageThread extends Thread {
-		private URL url;
+		private DownloadItem downloadItem;
 
-		public DeviantartImageThread(URL url) {
-			this.url = url;
+		public DeviantartImageThread(DownloadItem downloadItem) {
+			this.downloadItem = downloadItem;
 		}
 
 		@Override
@@ -542,10 +542,10 @@ public class DeviantartRipper extends AbstractHTMLRipper {
 		 */
 		private void getFullSizeURL() {
 
-			LOGGER.info("Searching max. Resolution for " + url);
-			sendUpdate(STATUS.LOADING_RESOURCE, "Searching max. resolution for " + url);
+			LOGGER.info("Searching max. Resolution for " + downloadItem.url);
+			sendUpdate(STATUS.LOADING_RESOURCE, "Searching max. resolution for " + downloadItem.url);
 			try {
-				Response re = Http.url(url).connection().referrer(referer).userAgent(userAgent).cookies(getDACookie())
+				Response re = Http.url(downloadItem.url).connection().referrer(referer).userAgent(userAgent).cookies(getDACookie())
 						.execute();
 				Document doc = re.parse();
 
@@ -569,7 +569,7 @@ public class DeviantartRipper extends AbstractHTMLRipper {
 
 				// Download Button
 				if (downloadButton != null) {
-					LOGGER.info("Download Button found for "+ url +" : "  + downloadButton.attr("href"));
+					LOGGER.info("Download Button found for "+ downloadItem.url +" : "  + downloadButton.attr("href"));
 
 					Response download = Http.url(downloadButton.attr("href")).connection().cookies(getDACookie())
 							.method(Method.GET).referrer(referer).userAgent(userAgent).ignoreContentType(true)
@@ -579,16 +579,16 @@ public class DeviantartRipper extends AbstractHTMLRipper {
 					String[] filetypePart = download.header("Content-Disposition").split("\\.");
 
 					LOGGER.info("Found Image URL");
-					LOGGER.info(url);
+					LOGGER.info(downloadItem.url);
 					LOGGER.info(location);
 
-					addURLToDownload(location, "", "", "", getDACookie(),
+					addURLToDownload(new DownloadItem(location, 0), "", "", "", getDACookie(),
 							title + "." + filetypePart[filetypePart.length - 1]);
 					return;
 				}
 
 				// No Download Button
-				LOGGER.info("No Download Button for: "+ url);
+				LOGGER.info("No Download Button for: "+ downloadItem.url);
 				
 				Element div = doc.select("div.dev-view-deviation").first();
 
@@ -596,18 +596,18 @@ public class DeviantartRipper extends AbstractHTMLRipper {
 
 				String scaledImage = "";
 				if (image == null) {
-					LOGGER.error("ERROR on " + url);
+					LOGGER.error("ERROR on " + downloadItem.url);
 
 					LOGGER.error("Cookies: " + getDACookie() + "    ");
 					LOGGER.error(div);
-					sendUpdate(STATUS.DOWNLOAD_ERRORED, "ERROR at\n" + url);
+					sendUpdate(STATUS.DOWNLOAD_ERRORED, "ERROR at\n" + downloadItem.url);
 					return;
 				}
 
 				// When it is text art (e.g. story) the only image is the profile
 				// picture
 				if (image.hasClass("avatar")) {
-					LOGGER.error("No Image found, probably text art: " + url);
+					LOGGER.error("No Image found, probably text art: " + downloadItem.url);
 					return;
 				}
 
@@ -630,7 +630,7 @@ public class DeviantartRipper extends AbstractHTMLRipper {
 				}
 				String[] tmpParts = downloadString.split("\\."); //split to get file ending
 				
-				addURLToDownload(new URL(downloadString), "", "", "", new HashMap<String, String>(),
+				addURLToDownload(new DownloadItem(new URL(downloadString), downloadItem.sourceCreatedTimeSeconds), "", "", "", new HashMap<String, String>(),
 						title + "." + tmpParts[tmpParts.length - 1]);
 				return;
 
@@ -638,8 +638,8 @@ public class DeviantartRipper extends AbstractHTMLRipper {
 				e.printStackTrace();
 			}
 
-			LOGGER.error("No Full Size URL for: " + url);
-			sendUpdate(STATUS.DOWNLOAD_ERRORED, "No image found for " + url);
+			LOGGER.error("No Full Size URL for: " + downloadItem.url);
+			sendUpdate(STATUS.DOWNLOAD_ERRORED, "No image found for " + downloadItem.url);
 
 			return;
 

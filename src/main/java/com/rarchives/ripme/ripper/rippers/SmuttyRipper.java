@@ -12,6 +12,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 
 
@@ -45,8 +46,8 @@ public class SmuttyRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> results = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> results = new ArrayList<>();
         for (Element image : doc.select("a.l > img")) {
             if (isStopped()) {
                 break;
@@ -66,7 +67,7 @@ public class SmuttyRipper extends AbstractHTMLRipper {
                 }
             }
             imageUrl = sb.toString();
-            results.add("http:" + imageUrl);
+            results.add(new DownloadItem("http:" + imageUrl));
         }
         return results;
     }
@@ -94,8 +95,8 @@ public class SmuttyRipper extends AbstractHTMLRipper {
         return Http.url(url).get();
     }
 
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index));
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index));
     }
 
     @Override

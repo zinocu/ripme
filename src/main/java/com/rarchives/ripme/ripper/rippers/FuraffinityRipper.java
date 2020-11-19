@@ -23,6 +23,7 @@ import org.jsoup.safety.Whitelist;
 import org.jsoup.select.Elements;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.ripper.DownloadThreadPool;
 import com.rarchives.ripme.utils.Http;
 
@@ -115,14 +116,14 @@ public class FuraffinityRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document page) {
-        List<String> urls = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document page) throws MalformedURLException {
+        List<DownloadItem> urls = new ArrayList<>();
         Elements urlElements = page.select("figure.t-image > b > u > a");
         for (Element e : urlElements) {
             String urlToAdd = getImageFromPost(urlBase + e.select("a").first().attr("href"));
             if (url != null) {
                 if (urlToAdd.startsWith("http")) {
-                    urls.add(urlToAdd);
+                    urls.add(new DownloadItem(urlToAdd));
                 }
             }
         }
@@ -213,8 +214,8 @@ public class FuraffinityRipper extends AbstractHTMLRipper {
         return true;
     }
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index));
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index));
     }
 
     @Override

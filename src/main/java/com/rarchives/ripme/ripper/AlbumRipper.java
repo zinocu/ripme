@@ -92,7 +92,7 @@ public abstract class AlbumRipper extends AbstractRipper {
     /**
      * Queues image to be downloaded and saved.
      * Uses filename from URL to decide filename.
-     * @param url
+     * @param downloadItem
      *      URL to download
      * @return
      *      True on success

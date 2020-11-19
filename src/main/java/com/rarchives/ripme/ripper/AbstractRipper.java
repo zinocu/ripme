@@ -144,7 +144,7 @@ public abstract class AbstractRipper
 
     /**
      * Queues image to be downloaded and saved.
-     * @param url
+     * @param downloadItem
      *      URL of the file
      * @param saveAs
      *      Path of the local file to save the content to.
@@ -154,7 +154,7 @@ public abstract class AbstractRipper
 
     /**
      * Queues image to be downloaded and saved.
-     * @param url
+     * @param downloadItem
      *      URL of the file
      * @param saveAs
      *      Path of the local file to save the content to.
@@ -171,7 +171,7 @@ public abstract class AbstractRipper
 
     /**
      * Queues image to be downloaded and saved.
-     * @param url
+     * @param downloadItem
      *      URL of the file
      * @param options
      *      A map<String,String> containing any changes to the default options.
@@ -193,7 +193,7 @@ public abstract class AbstractRipper
 
     /**
      * Queues image to be downloaded and saved.
-     * @param url
+     * @param downloadItem
      *      URL of the file
      * @param options
      *      A map<String,String> containing any changes to the default options.
@@ -209,7 +209,7 @@ public abstract class AbstractRipper
 
     /**
      * Queues image to be downloaded and saved.
-     * @param url
+     * @param downloadItem
      *      URL of the file
      * @param prefix
      *      Prefix for the downloaded file
@@ -316,7 +316,7 @@ public abstract class AbstractRipper
 
     /**
      * Queues file to be downloaded and saved. With options.
-     * @param url
+     * @param downloadItem
      *      URL to download.
      * @param prefix
      *      Prefix to prepend to the saved filename.
@@ -335,7 +335,7 @@ public abstract class AbstractRipper
     /**
      * Queues image to be downloaded and saved.
      * Uses filename from URL (and 'prefix') to decide filename.
-     * @param url
+     * @param downloadItem
      *      URL to download
      * @param prefix
      *      Text to append to saved filename.
@@ -400,7 +400,7 @@ public abstract class AbstractRipper
 
     /**
      * Notifies observers that a file download has completed.
-     * @param url
+     * @param downloadItem
      *      URL that was completed.
      * @param saveAs
      *      Where the downloaded file is stored.
@@ -408,14 +408,14 @@ public abstract class AbstractRipper
     public abstract void downloadCompleted(DownloadItem downloadItem, File saveAs);
     /**
      * Notifies observers that a file could not be downloaded (includes a reason).
-     * @param url
+     * @param downloadItem
      * @param reason
      */
     public abstract void downloadErrored(DownloadItem downloadItem, String reason);
     /**
      * Notify observers that a download could not be completed,
      * but was not technically an "error".
-     * @param url
+     * @param downloadItem
      * @param file
      */
     public abstract void downloadExists(DownloadItem downloadItem, File file);

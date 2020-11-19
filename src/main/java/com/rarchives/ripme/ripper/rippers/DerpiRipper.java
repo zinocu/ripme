@@ -9,6 +9,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.rarchives.ripme.ripper.AbstractJSONRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 import com.rarchives.ripme.utils.Utils;
 
@@ -122,8 +123,8 @@ public class DerpiRipper extends AbstractJSONRipper {
     }
 
     @Override
-    public List<String> getURLsFromJSON(JSONObject json) {
-        List<String> imageURLs = new ArrayList<>();
+    public List<DownloadItem> getURLsFromJSON(JSONObject json) throws MalformedURLException {
+        List<DownloadItem> imageURLs = new ArrayList<>();
 
         JSONArray arr = null;
         if (json.has("images")) {
@@ -133,17 +134,19 @@ public class DerpiRipper extends AbstractJSONRipper {
         }
         if (arr != null) {
             for (int i = 0; i < arr.length(); i++){
-                imageURLs.add(this.getImageUrlFromJson(arr.getJSONObject(i)));
+                String link = this.getImageUrlFromJson(arr.getJSONObject(i));
+                imageURLs.add(new DownloadItem(new URL(link), 0));
             }
         } else {
-            imageURLs.add(this.getImageUrlFromJson(json));
+            String link = this.getImageUrlFromJson(json);
+            imageURLs.add(new DownloadItem(new URL(link), 0));
         }
         return imageURLs;
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
+    public void downloadURL(DownloadItem downloadItem, int index) {
         // we don't set an index prefix here as derpibooru already prefixes their images with their unique IDs
-        addURLToDownload(url, "");
+        addURLToDownload(downloadItem, "");
     }
 }

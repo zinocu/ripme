@@ -12,6 +12,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 
 public class ReadcomicRipper extends  ViewcomicRipper {
@@ -44,10 +45,10 @@ public class ReadcomicRipper extends  ViewcomicRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> result = new ArrayList<String>();
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> result = new ArrayList<>();
         for (Element el : doc.select("div.pinbin-copy > a > img")) {
-            result.add(el.attr("src"));
+            result.add(new DownloadItem(el.attr("src")));
         }
         return result;
     }

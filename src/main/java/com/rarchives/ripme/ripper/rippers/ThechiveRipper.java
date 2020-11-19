@@ -1,6 +1,7 @@
 package com.rarchives.ripme.ripper.rippers;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 
 import java.io.IOException;
@@ -77,8 +78,8 @@ public class ThechiveRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> result;
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> result;
         Matcher matcher = p1.matcher(url.toExternalForm());
 
         if (matcher.matches()) {
@@ -128,11 +129,11 @@ public class ThechiveRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index));
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index));
     }
 
-    private List<String> getUrlsFromThechive(Document doc) {
+    private List<DownloadItem> getUrlsFromThechive(Document doc) throws MalformedURLException {
         /*
          * The image urls are stored in a <script> tag of the document. This script
          * contains a single array var by name CHIVE_GALLERY_ITEMS.
@@ -141,7 +142,7 @@ public class ThechiveRipper extends AbstractHTMLRipper {
          * string, parse it, and grab all the img/gif urls.
          * 
          */
-        List<String> result = new ArrayList<>();
+        List<DownloadItem> result = new ArrayList<>();
         Elements scripts = doc.getElementsByTag("script");
 
         for (Element script : scripts) {
@@ -166,24 +167,25 @@ public class ThechiveRipper extends AbstractHTMLRipper {
             Document imgDoc = Jsoup.parse(allImgTags.toString());
             Elements imgs = imgDoc.getElementsByTag("img");
             for (Element img : imgs) {
+                String link = null;
                 if (img.hasAttr("data-gifsrc")) {
                     // For gifs.
-                    result.add(img.attr("data-gifsrc"));
+                    link = img.attr("data-gifsrc");
                 } else {
                     // For jpeg images.
-                    result.add(img.attr("src"));
+                    link = img.attr("src");
                 }
+                
+                // strip all GET parameters from the links( such as quality, width, height as to
+                // get the original image.).
+                result.add(new DownloadItem(link.substring(0, link.indexOf("?"))));
             }
         }
-
-        // strip all GET parameters from the links( such as quality, width, height as to
-        // get the original image.).
-        result.replaceAll(s -> s.substring(0, s.indexOf("?")));
-
+        
         return result;
     }
 
-    private List<String> getUrlsFromIDotThechive() {
+    private List<DownloadItem> getUrlsFromIDotThechive() {
         /*
          * Image urls for i.thechive.com/someUserName as fetched via JSON request. Each
          * 
@@ -195,7 +197,7 @@ public class ThechiveRipper extends AbstractHTMLRipper {
          *  2. queryType: 'by-username' always.
          *  3. username: username from the url itself.
          */
-        List<String> result = new ArrayList<>();
+        List<DownloadItem> result = new ArrayList<>();
         try {
             Response response = Http.url(jsonUrl).data("seed", nextSeed).data("queryType", "by-username")
                     .data("username", username).ignoreContentType().cookies(cookies).response();
@@ -207,9 +209,11 @@ public class ThechiveRipper extends AbstractHTMLRipper {
             for (int i = 0; i < imgList.length(); i++) {
                 JSONObject img = imgList.getJSONObject(i);
                 if (img.getString("mediaType").equals("gif")) {
-                    result.add("https:" + img.getString("mediaUrlOverlay"));
+                    String link = "https:" + img.getString("mediaUrlOverlay");
+                    result.add(new DownloadItem(link));
                 } else {
-                    result.add("https:" + img.getString("mediaGifFrameUrl"));
+                    String link = "https:" + img.getString("mediaGifFrameUrl");
+                    result.add(new DownloadItem(link));
                 }
                 nextSeed = img.getString("activityId");
             }

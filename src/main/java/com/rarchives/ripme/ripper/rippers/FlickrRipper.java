@@ -14,6 +14,7 @@ import org.json.JSONException;
 import org.jsoup.nodes.Document;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.ripper.DownloadThreadPool;
 import com.rarchives.ripme.utils.Http;
 import org.jsoup.nodes.Element;
@@ -237,8 +238,8 @@ public class FlickrRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> imageURLs = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> imageURLs = new ArrayList<>();
         String apiKey = getAPIKey(doc);
         int x = 1;
         while (true) {
@@ -267,7 +268,7 @@ public class FlickrRipper extends AbstractHTMLRipper {
                     LOGGER.info(i);
                     JSONObject data = (JSONObject) pictures.get(i);
                     try {
-                        addURLToDownload(getLargestImageURL(data.getString("id"), apiKey));
+                        addURLToDownload(new DownloadItem(getLargestImageURL(data.getString("id"), apiKey)));
                     } catch (MalformedURLException e) {
                         LOGGER.error("Flickr MalformedURLException: " + e.getMessage());
                     }
@@ -287,8 +288,8 @@ public class FlickrRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index));
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index));
     }
 
     private URL getLargestImageURL(String imageID, String apiKey) throws MalformedURLException {

@@ -13,6 +13,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.ripper.DownloadThreadPool;
 import com.rarchives.ripme.utils.Http;
 import com.rarchives.ripme.utils.Utils;
@@ -61,16 +62,16 @@ public class ImagevenueRipper extends AbstractHTMLRipper {
         return Http.url(url).get();
     }
 
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> imageURLs = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> imageURLs = new ArrayList<>();
         for (Element thumb : doc.select("a[target=_blank]")) {
-            imageURLs.add(thumb.attr("href"));
+            imageURLs.add(new DownloadItem(thumb.attr("href")));
         }
         return imageURLs;
     }
 
-    public void downloadURL(URL url, int index) {
-        ImagevenueImageThread t = new ImagevenueImageThread(url, index);
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        ImagevenueImageThread t = new ImagevenueImageThread(downloadItem, index);
         imagevenueThreadPool.addThread(t);
     }
 
@@ -80,12 +81,12 @@ public class ImagevenueRipper extends AbstractHTMLRipper {
      * Handles case when site has IP-banned the user.
      */
     private class ImagevenueImageThread extends Thread {
-        private URL url;
+        private DownloadItem downloadItem;
         private int index;
 
-        ImagevenueImageThread(URL url, int index) {
+        ImagevenueImageThread(DownloadItem downloadItem, int index) {
             super();
-            this.url = url;
+            this.downloadItem = downloadItem;
             this.index = index;
         }
 
@@ -96,26 +97,26 @@ public class ImagevenueRipper extends AbstractHTMLRipper {
 
         private void fetchImage() {
             try {
-                Document doc = Http.url(url)
+                Document doc = Http.url(downloadItem.url)
                                    .retries(3)
                                    .get();
                 // Find image
                 Elements images = doc.select("a > img");
                 if (images.isEmpty()) {
-                    LOGGER.warn("Image not found at " + this.url);
+                    LOGGER.warn("Image not found at " + this.downloadItem);
                     return;
                 }
                 Element image = images.first();
                 String imgsrc = image.attr("src");
-                imgsrc = "http://" + this.url.getHost() + "/" + imgsrc;
+                imgsrc = "http://" + this.downloadItem.url.getHost() + "/" + imgsrc;
                 // Provide prefix and let the AbstractRipper "guess" the filename
                 String prefix = "";
                 if (Utils.getConfigBoolean("download.save_order", true)) {
                     prefix = String.format("%03d_", index);
                 }
-                addURLToDownload(new URL(imgsrc), prefix);
+                addURLToDownload(new DownloadItem(new URL(imgsrc)), prefix);
             } catch (IOException e) {
-                LOGGER.error("[!] Exception while loading/parsing " + this.url, e);
+                LOGGER.error("[!] Exception while loading/parsing " + this.downloadItem.url, e);
             }
         }
     }

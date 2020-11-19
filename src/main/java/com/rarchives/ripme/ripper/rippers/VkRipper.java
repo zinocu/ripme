@@ -8,6 +8,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.commons.lang.StringEscapeUtils;
 import com.rarchives.ripme.ripper.AbstractJSONRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.jsoup.Connection.Method;
@@ -21,10 +23,11 @@ import com.rarchives.ripme.utils.Utils;
 
 public class VkRipper extends AbstractJSONRipper {
 
-    private static final String DOMAIN = "vk.com",
-                                HOST   = "vk";
+    private static final String DOMAIN = "vk.com", HOST = "vk";
 
-    enum RipType { VIDEO, IMAGE }
+    enum RipType {
+        VIDEO, IMAGE
+    }
 
     private RipType RIP_TYPE;
     private String oid;
@@ -54,11 +57,7 @@ public class VkRipper extends AbstractJSONRipper {
             postData.put("act", "load_videos_silent");
             postData.put("offset", "0");
             postData.put("oid", oid);
-            Document doc = Http.url(u)
-                    .referrer(this.url)
-                    .ignoreContentType()
-                    .data(postData)
-                    .post();
+            Document doc = Http.url(u).referrer(this.url).ignoreContentType().data(postData).post();
             String[] jsonStrings = doc.toString().split("<!>");
             return new JSONObject(jsonStrings[jsonStrings.length - 1]);
         } else {
@@ -75,8 +74,8 @@ public class VkRipper extends AbstractJSONRipper {
     }
 
     @Override
-    protected List<String> getURLsFromJSON(JSONObject page) {
-        List<String> pageURLs = new ArrayList<>();
+    protected List<DownloadItem> getURLsFromJSON(JSONObject page) throws MalformedURLException {
+        List<DownloadItem> pageURLs = new ArrayList<>();
         if (RIP_TYPE == RipType.VIDEO) {
             JSONArray videos = page.getJSONArray("all");
             LOGGER.info("Found " + videos.length() + " videos");
@@ -92,32 +91,32 @@ public class VkRipper extends AbstractJSONRipper {
                     LOGGER.error("Error while ripping video id: " + vidid);
                     return pageURLs;
                 }
-                pageURLs.add(videoURL);
+                pageURLs.add(new DownloadItem(videoURL));
             }
         } else {
             Iterator<String> keys = page.keys();
             while (keys.hasNext()) {
-                pageURLs.add(page.getString(keys.next()));
+                pageURLs.add(new DownloadItem(page.getString(keys.next())));
             }
         }
         return pageURLs;
     }
 
     @Override
-    protected void downloadURL(URL url, int index) {
+    protected void downloadURL(DownloadItem downloadItem, int index) {
         if (RIP_TYPE == RipType.VIDEO) {
             String prefix = "";
             if (Utils.getConfigBoolean("download.save_order", true)) {
                 prefix = String.format("%03d_", index + 1);
             }
-            addURLToDownload(url, prefix);
+            addURLToDownload(downloadItem, prefix);
             try {
                 Thread.sleep(500);
             } catch (InterruptedException e) {
                 LOGGER.error("Interrupted while waiting to fetch next video URL", e);
             }
         } else {
-            addURLToDownload(url);
+            addURLToDownload(downloadItem);
         }
     }
 
@@ -141,9 +140,9 @@ public class VkRipper extends AbstractJSONRipper {
         if (this.url.toExternalForm().contains("/videos")) {
             RIP_TYPE = RipType.VIDEO;
             JSONObject json = getFirstPage();
-            List<String> URLs = getURLsFromJSON(json);
+            List<DownloadItem> URLs = getURLsFromJSON(json);
             for (int index = 0; index < URLs.size(); index ++) {
-                downloadURL(new URL(URLs.get(index)), index);
+                downloadURL(URLs.get(index), index);
             }
             waitForThreads();
         }

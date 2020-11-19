@@ -1,6 +1,7 @@
 package com.rarchives.ripme.ripper.rippers;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.ripper.DownloadThreadPool;
 import com.rarchives.ripme.utils.Http;
 
@@ -69,14 +70,14 @@ public class HqpornerRipper extends AbstractHTMLRipper {
 	}
 
 	@Override
-	public List<String> getURLsFromPage(Document doc) {
-		List<String> result = new ArrayList<>();
+	public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+		List<DownloadItem> result = new ArrayList<>();
 		Matcher m1 = p1.matcher(this.url.toExternalForm()); // video url.
 		Matcher m2 = p2.matcher(this.url.toExternalForm()); // category/top/actress/studio url.
 
 		if (m1.matches()) {
 			//subdirectory = subdirectory
-			result.add(this.url.toExternalForm());
+			result.add(new DownloadItem(this.url.toExternalForm()));
 			return result;
 		} else if (m2.matches()) {
 			if (m2.group(1).indexOf('/') != -1)
@@ -88,13 +89,13 @@ public class HqpornerRipper extends AbstractHTMLRipper {
 		return result;
 	}
 
-	public List<String> getAllVideoUrls(Document doc) {
+	public List<DownloadItem> getAllVideoUrls(Document doc) throws MalformedURLException {
 		// div.6u h3  a.click-trigger
-		List<String> result = new ArrayList<>();
+		List<DownloadItem> result = new ArrayList<>();
 		Elements videoLinks = doc.select("div.6u h3  a.click-trigger");
 		for (Element e : videoLinks) {
 			if (e.hasAttr("href")) {
-				result.add(VIDEO_URL_PREFIX + e.attr("href"));
+				result.add(new DownloadItem(VIDEO_URL_PREFIX + e.attr("href")));
 			}
 		}
 
@@ -107,8 +108,8 @@ public class HqpornerRipper extends AbstractHTMLRipper {
 	}
 
 	@Override
-	public void downloadURL(URL url, int index) {
-		hqpornerThreadPool.addThread(new HqpornerDownloadThread(url, index, subdirectory));
+	public void downloadURL(DownloadItem downloadItem, int index) {
+		hqpornerThreadPool.addThread(new HqpornerDownloadThread(downloadItem, index, subdirectory));
 	}
 
 	@Override
@@ -132,12 +133,12 @@ public class HqpornerRipper extends AbstractHTMLRipper {
 
 	private class HqpornerDownloadThread extends Thread {
 
-		private URL hqpornerVideoPageUrl;
+		private DownloadItem downloadItem;
 		//private int index;
 		private String subdirectory;
 
-		public HqpornerDownloadThread(URL url, int index, String subdirectory) {
-			this.hqpornerVideoPageUrl = url;
+		public HqpornerDownloadThread(DownloadItem downloadItem, int index, String subdirectory) {
+			this.downloadItem = downloadItem;
 			//this.index = index;
 			this.subdirectory = subdirectory;
 		}
@@ -150,7 +151,7 @@ public class HqpornerRipper extends AbstractHTMLRipper {
 		public void fetchVideo() {
 			try {
 
-				Document doc = Http.url(hqpornerVideoPageUrl).retries(3).get();
+				Document doc = Http.url(downloadItem.url).retries(3).get();
 				String downloadUrl = null;
 				String videoPageUrl = "https:" + doc.select("div.videoWrapper > iframe").attr("src");
 
@@ -164,7 +165,7 @@ public class HqpornerRipper extends AbstractHTMLRipper {
 				}
 
 				if (downloadUrl != null) {
-					addURLToDownload(new URL(downloadUrl), "", subdirectory, "", null, getVideoName(), "mp4");
+					addURLToDownload(new DownloadItem(new URL(downloadUrl)), "", subdirectory, "", null, getVideoName(), "mp4");
 				}
 
 			} catch (IOException e) {
@@ -176,7 +177,7 @@ public class HqpornerRipper extends AbstractHTMLRipper {
 			Pattern p = Pattern.compile("(//[a-zA-Z0-9\\.]+/pub/cid/[a-z0-9]+/1080.mp4)");
 			try {
 				logger.info("Downloading from mydaddy " + videoPageUrl);
-				Document page = Http.url(videoPageUrl).referrer(hqpornerVideoPageUrl).get();
+				Document page = Http.url(videoPageUrl).referrer(downloadItem.url).get();
 				Matcher m = p.matcher(page.html());
 				logger.info(page.html());
 				if (m.find()) {
@@ -192,7 +193,7 @@ public class HqpornerRipper extends AbstractHTMLRipper {
 		private String getVideoFromFlyFlv(String videoPageUrl) {
 			try {
 				logger.info("Downloading from flyflv " + videoPageUrl);
-				Document page = Http.url(videoPageUrl).referrer(hqpornerVideoPageUrl).get();
+				Document page = Http.url(videoPageUrl).referrer(downloadItem.url).get();
 				String[] videoSizes = { "1080p", "720p", "360p" };
 				for (String videoSize : videoSizes) {
 					String urlToReturn = page.select("video > source[label=" + videoSize).attr("src");
@@ -216,7 +217,7 @@ public class HqpornerRipper extends AbstractHTMLRipper {
 			try {
 				logger.info("Trying to download from unknown video host " + videoPageurl);
 				URL url = new URL(videoPageurl);
-				Response response = Http.url(url).referrer(hqpornerVideoPageUrl).response();
+				Response response = Http.url(url).referrer(downloadItem.url).response();
 				Document doc = response.parse();
 
 				// 1. Search for src$=.mp4
@@ -271,7 +272,7 @@ public class HqpornerRipper extends AbstractHTMLRipper {
 
 		private String getVideoName() {
 			try {
-				String filename = getGID(hqpornerVideoPageUrl);
+				String filename = getGID(downloadItem.url);
 				return filename;
 			} catch (MalformedURLException e) {
 				return "1080";

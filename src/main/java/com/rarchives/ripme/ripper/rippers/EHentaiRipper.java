@@ -18,6 +18,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.ripper.DownloadThreadPool;
 import com.rarchives.ripme.ui.RipStatusMessage.STATUS;
 import com.rarchives.ripme.utils.Http;
@@ -181,19 +182,19 @@ public class EHentaiRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document page) {
-        List<String> imageURLs = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document page) throws MalformedURLException {
+        List<DownloadItem> imageURLs = new ArrayList<>();
         Elements thumbs = page.select("#gdt > .gdtm a");
         // Iterate over images on page
         for (Element thumb : thumbs) {
-            imageURLs.add(thumb.attr("href"));
+            imageURLs.add(new DownloadItem(new URL(thumb.attr("href")), 0));
         }
         return imageURLs;
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        EHentaiImageThread t = new EHentaiImageThread(url, index, this.workingDir);
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        EHentaiImageThread t = new EHentaiImageThread(downloadItem, index, this.workingDir);
         ehentaiThreadPool.addThread(t);
         try {
             Thread.sleep(IMAGE_SLEEP_TIME);
@@ -209,13 +210,13 @@ public class EHentaiRipper extends AbstractHTMLRipper {
      * Handles case when site has IP-banned the user.
      */
     private class EHentaiImageThread extends Thread {
-        private URL url;
+        private DownloadItem downloadItem;
         private int index;
         private File workingDir;
 
-        EHentaiImageThread(URL url, int index, File workingDir) {
+        EHentaiImageThread(DownloadItem downloadItem, int index, File workingDir) {
             super();
-            this.url = url;
+            this.downloadItem = downloadItem;
             this.index = index;
             this.workingDir = workingDir;
         }
@@ -227,7 +228,7 @@ public class EHentaiRipper extends AbstractHTMLRipper {
 
         private void fetchImage() {
             try {
-                Document doc = getPageWithRetries(this.url);
+                Document doc = getPageWithRetries(downloadItem.url);
 
                 // Find image
                 Elements images = doc.select(".sni > a > img");
@@ -235,7 +236,7 @@ public class EHentaiRipper extends AbstractHTMLRipper {
                     // Attempt to find image elsewise (Issue #41)
                     images = doc.select("img#img");
                     if (images.isEmpty()) {
-                        LOGGER.warn("Image not found at " + this.url);
+                        LOGGER.warn("Image not found at " + downloadItem.url);
                         return;
                     }
                 }
@@ -251,7 +252,7 @@ public class EHentaiRipper extends AbstractHTMLRipper {
                         savePath += String.format("%03d_", index);
                     }
                     savePath += m.group(1);
-                    addURLToDownload(new URL(imgsrc), new File(savePath));
+                    addURLToDownload(new DownloadItem(new URL(imgsrc), 0), new File(savePath));
                 }
                 else {
                     // Provide prefix and let the AbstractRipper "guess" the filename
@@ -259,10 +260,10 @@ public class EHentaiRipper extends AbstractHTMLRipper {
                     if (Utils.getConfigBoolean("download.save_order", true)) {
                         prefix = String.format("%03d_", index);
                     }
-                    addURLToDownload(new URL(imgsrc), prefix);
+                    addURLToDownload(new DownloadItem(new URL(imgsrc), 0), prefix);
                 }
             } catch (IOException e) {
-                LOGGER.error("[!] Exception while loading/parsing " + this.url, e);
+                LOGGER.error("[!] Exception while loading/parsing " + downloadItem.url, e);
             }
         }
     }

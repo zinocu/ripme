@@ -1,6 +1,7 @@
 package com.rarchives.ripme.ripper.rippers;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 import com.rarchives.ripme.utils.Utils;
 import java.io.IOException;
@@ -68,17 +69,18 @@ public class BooruRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document page) {
-        List<String> res = new ArrayList<>(100);
+    public List<DownloadItem> getURLsFromPage(Document page) throws MalformedURLException {
+        List<DownloadItem> res = new ArrayList<>(100);
         for (Element e : page.getElementsByTag("post")) {
-            res.add(e.absUrl("file_url") + "#" + e.attr("id"));
+            String link = e.absUrl("file_url") + "#" + e.attr("id");
+            res.add(new DownloadItem(new URL(link), 0));
         }
         return res;
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, Utils.getConfigBoolean("download.save_order", true) ? url.getRef() + "-" : "");
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, Utils.getConfigBoolean("download.save_order", true) ? url.getRef() + "-" : "");
     }
 
     private String getTerm(URL url) throws MalformedURLException {

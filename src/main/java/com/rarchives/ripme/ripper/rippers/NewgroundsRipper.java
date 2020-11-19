@@ -1,6 +1,7 @@
 package com.rarchives.ripme.ripper.rippers;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 import org.jsoup.nodes.Document;
 
@@ -67,9 +68,8 @@ public class NewgroundsRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    protected List<String> getURLsFromPage(Document page) {
-
-        List<String> imageURLs = new ArrayList<>();
+    protected List<DownloadItem> getURLsFromPage(Document page) {
+        List<DownloadItem> imageURLs = new ArrayList<>();
         String documentHTMLString = page.toString().replaceAll("&quot;", "");
         String findStr = "newgrounds.com\\/art\\/view\\/" + this.username;
         int lastIndex = 0;
@@ -113,11 +113,10 @@ public class NewgroundsRipper extends AbstractHTMLRipper {
                     for(String extensions: this.ALLOWED_EXTENSIONS){
                         if(imagePage.toString().contains(testURL + "." + extensions)){
                             imageUrl += m.group(2) + "/" + m.group(3) + "_" + this.username + "_" + m.group(1) + "." + extensions;
-                            imageURLs.add(imageUrl);
+                            imageURLs.add(new DownloadItem(imageUrl));
                             break;
                         }
                     }
-
                 } catch (IOException e) {
                     LOGGER.error("IO Error on trying to check extension: " + inLink + m.group(1));
                 }
@@ -128,7 +127,7 @@ public class NewgroundsRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    protected void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index));
+    protected void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index));
     }
 }

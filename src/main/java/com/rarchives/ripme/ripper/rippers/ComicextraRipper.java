@@ -11,6 +11,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 
 /**
@@ -109,13 +110,13 @@ public class ComicextraRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    protected List<String> getURLsFromPage(Document page) {
-        List<String> urls = new ArrayList<>();
+    protected List<DownloadItem> getURLsFromPage(Document page) throws MalformedURLException {
+        List<DownloadItem> urls = new ArrayList<>();
 
         if (urlType == UrlType.COMIC || urlType == UrlType.CHAPTER) {
             Elements images = page.select("img.chapter_img");
             for (Element img : images) {
-                urls.add(img.attr("src"));
+                urls.add(new DownloadItem(new URL(img.attr("src")), 0));
             }
         }
 
@@ -123,11 +124,11 @@ public class ComicextraRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    protected void downloadURL(URL url, int index) {
+    protected void downloadURL(DownloadItem downloadItem, int index) {
         String subdirectory = getSubDirectoryName();
         String prefix = getPrefix(++imageIndex);
 
-        addURLToDownload(url, prefix, subdirectory, null, null, FILE_NAME, null, Boolean.TRUE);
+        addURLToDownload(downloadItem, prefix, subdirectory, null, null, FILE_NAME, null, Boolean.TRUE);
     }
 
     /*

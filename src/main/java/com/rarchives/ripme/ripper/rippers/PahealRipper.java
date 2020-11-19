@@ -1,6 +1,7 @@
 package com.rarchives.ripme.ripper.rippers;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 import com.rarchives.ripme.utils.Utils;
 import java.io.File;
@@ -65,21 +66,21 @@ public class PahealRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document page) {
+    public List<DownloadItem> getURLsFromPage(Document page) throws MalformedURLException {
         Elements elements = page.select(".shm-thumb.thumb>a").not(".shm-thumb-link");
-        List<String> res = new ArrayList<>(elements.size());
+        List<DownloadItem> res = new ArrayList<>(elements.size());
 
         for (Element e : elements) {
-            res.add(e.absUrl("href"));
+            res.add(new DownloadItem(e.absUrl("href")));
         }
 
         return res;
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
+    public void downloadURL(DownloadItem downloadItem, int index) {
         try {
-            String name = url.getPath();
+            String name = downloadItem.url.getPath();
             String ext = ".png";
 
             name = name.substring(name.lastIndexOf('/') + 1);
@@ -92,9 +93,9 @@ public class PahealRipper extends AbstractHTMLRipper {
                 + File.separator
                 + Utils.filesystemSafe(new URI(name).getPath())
                 + ext);
-            addURLToDownload(url, outFile);
+            addURLToDownload(downloadItem, outFile);
         } catch (IOException | URISyntaxException ex) {
-            logger.error("Error while downloading URL " + url, ex);
+            logger.error("Error while downloading URL " + downloadItem.url, ex);
         }
     }
 

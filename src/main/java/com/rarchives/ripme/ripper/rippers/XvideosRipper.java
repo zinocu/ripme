@@ -8,8 +8,9 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-
 import com.rarchives.ripme.ripper.AbstractSingleFileRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
+
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
@@ -74,8 +75,8 @@ public class XvideosRipper extends AbstractSingleFileRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> results = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> results = new ArrayList<>();
         Pattern p = Pattern.compile("^https?://[wm.]*xvideos\\.com/video([0-9]+).*$");
         Matcher m = p.matcher(url.toExternalForm());
         if (m.matches()) {
@@ -87,14 +88,14 @@ public class XvideosRipper extends AbstractSingleFileRipper {
                     for (String line : lines) {
                         if (line.contains("html5player.setVideoUrlHigh")) {
                             String videoURL = line.replaceAll("\t", "").replaceAll("html5player.setVideoUrlHigh\\(", "").replaceAll("\'", "").replaceAll("\\);", "");
-                            results.add(videoURL);
+                            results.add(new DownloadItem(videoURL));
                         }
                     }
                 }
             }
         } else {
             for (Element e : doc.select("div.thumb > a")) {
-                results.add(e.attr("href"));
+                results.add(new DownloadItem(e.attr("href")));
                 if (isThisATest()) {
                     break;
                 }
@@ -104,8 +105,8 @@ public class XvideosRipper extends AbstractSingleFileRipper {
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index));
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index));
     }
 
     @Override

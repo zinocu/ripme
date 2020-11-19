@@ -13,6 +13,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 
 public class DynastyscansRipper extends AbstractHTMLRipper {
@@ -59,8 +60,8 @@ public class DynastyscansRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> result = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> result = new ArrayList<>();
         String jsonText = null;
         for (Element script : doc.select("script")) {
             if (script.data().contains("var pages")) {
@@ -71,14 +72,15 @@ public class DynastyscansRipper extends AbstractHTMLRipper {
         }
         JSONArray imageArray = new JSONArray(jsonText);
         for (int i = 0; i < imageArray.length(); i++) {
-            result.add("https://dynasty-scans.com" + imageArray.getJSONObject(i).getString("image"));
+            String link = "https://dynasty-scans.com" + imageArray.getJSONObject(i).getString("image");
+            result.add(new DownloadItem(new URL(link), 0));
         }
 
         return result;
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index));
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index));
     }
 }

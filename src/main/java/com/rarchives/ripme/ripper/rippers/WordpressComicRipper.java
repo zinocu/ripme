@@ -13,6 +13,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 
 public class WordpressComicRipper extends AbstractHTMLRipper {
@@ -339,8 +340,8 @@ public class WordpressComicRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> result = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> result = new ArrayList<>();
         if (theme1.contains(getHost())) {
             Element elem = doc.select("div.comic-table > div#comic > a > img").first();
             // If doc is the last page in the comic then elem.attr("src") returns null
@@ -370,54 +371,52 @@ public class WordpressComicRipper extends AbstractHTMLRipper {
                 pageTitle = pageTitle.replace(" ", "");
             }
 
-            result.add(elem.attr("src"));
+            result.add(new DownloadItem(elem.attr("src")));
         }
 
         // freeadultcomix gets it own if because it needs to add http://freeadultcomix.com to the start of each link
         // TODO review the above comment which no longer applies -- see if there's a refactoring we should do here.
         if (url.toExternalForm().contains("freeadultcomix.com")) {
             for (Element elem : doc.select("div.single-post > p > img.aligncenter")) {
-                result.add(elem.attr("src"));
+                result.add(new DownloadItem(elem.attr("src")));
             }
         } else if (url.toExternalForm().contains("comics-xxx.com")) {
             for (Element elem : doc.select("div.single-post > center > p > img")) {
-                result.add(elem.attr("src"));
+                result.add(new DownloadItem(elem.attr("src")));
             }
         } else if (url.toExternalForm().contains("shipinbottle.pepsaga.com")) {
             for (Element elem : doc.select("div#comic > div.comicpane > a > img")) {
-                result.add(elem.attr("src"));
+                result.add(new DownloadItem(elem.attr("src")));
             }
         } else if (url.toExternalForm().contains("8muses.download")) {
             for (Element elem : doc.select("div.popup-gallery > figure > a")) {
-                result.add(elem.attr("href"));
+                result.add(new DownloadItem(elem.attr("href")));
             }
         } else if (url.toExternalForm().contains("http://comixfap.net")) {
             // Some pages on comixfap do use unite-gallery and others don't, so we have a loop for each
             for (Element elem : doc.select("div.entry-content > div.dgwt-jg-gallery > figure > a")) {
-                result.add(elem.attr("href"));
+                result.add(new DownloadItem(elem.attr("href")));
             }
             for (Element elem : doc.select(".unite-gallery > img")) {
-                result.add(elem.attr("src"));
+                result.add(new DownloadItem(elem.attr("src")));
             }
         }
-
-
-
+        
         return result;
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
+    public void downloadURL(DownloadItem downloadItem, int index) {
         // Download the url with the page title as the prefix
         // so we can download them in any order (And don't have to rerip the whole site to update the local copy)
         if (getHost().contains("buttsmithy.com")
                 || getHost().contains("www.totempole666.com")
                 || getHost().contains("themonsterunderthebed.net")) {
-            addURLToDownload(url, pageTitle + "_");
+            addURLToDownload(downloadItem, pageTitle + "_");
         }
 
         // If we're ripping a site where we can't get the page number/title we just rip normally
-        addURLToDownload(url, getPrefix(index));
+        addURLToDownload(downloadItem, getPrefix(index));
 
 
     }

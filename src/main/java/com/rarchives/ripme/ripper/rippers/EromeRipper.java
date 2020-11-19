@@ -11,9 +11,9 @@ import java.util.regex.Pattern;
 import org.jsoup.Connection.Response;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 
 /**
@@ -40,8 +40,8 @@ public class EromeRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index));
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index));
     }
 
     @Override
@@ -89,8 +89,7 @@ public class EromeRipper extends AbstractHTMLRipper {
 
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> URLs = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
         return getMediaFromPage(doc);
     }
 
@@ -121,35 +120,35 @@ public class EromeRipper extends AbstractHTMLRipper {
         throw new MalformedURLException("erome album not found in " + url + ", expected https://www.erome.com/album");
     }
 
-    private List<String> getMediaFromPage(Document doc) {
-        List<String> results = new ArrayList<>();
+    private List<DownloadItem> getMediaFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> results = new ArrayList<>();
         for (Element el : doc.select("img.img-front")) {
 			if (el.hasAttr("src")) {
 				if (el.attr("src").startsWith("https:")) {
-					results.add(el.attr("src"));
+					results.add(new DownloadItem(el.attr("src")));
 				} else {
-					results.add("https:" + el.attr("src"));
+					results.add(new DownloadItem("https:" + el.attr("src")));
 				}
 			} else if (el.hasAttr("data-src")) {
 				//to add images that are not loaded( as all images are lasyloaded as we scroll).
-				results.add(el.attr("data-src"));
+				results.add(new DownloadItem(el.attr("data-src")));
 			}
 
 		}
         for (Element el : doc.select("source[label=HD]")) {
             if (el.attr("src").startsWith("https:")) {
-                results.add(el.attr("src"));
+                results.add(new DownloadItem(el.attr("src")));
             }
             else {
-                results.add("https:" + el.attr("src"));
+                results.add(new DownloadItem("https:" + el.attr("src")));
             }
         }
         for (Element el : doc.select("source[label=SD]")) {
             if (el.attr("src").startsWith("https:")) {
-                results.add(el.attr("src"));
+                results.add(new DownloadItem(el.attr("src")));
             }
             else {
-                results.add("https:" + el.attr("src"));
+                results.add(new DownloadItem("https:" + el.attr("src")));
             }
         }
         return results;

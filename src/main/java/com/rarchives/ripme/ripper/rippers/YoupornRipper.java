@@ -9,16 +9,15 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.rarchives.ripme.ripper.AbstractSingleFileRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
+
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import com.rarchives.ripme.ripper.VideoRipper;
 import com.rarchives.ripme.utils.Http;
 
 public class YoupornRipper extends AbstractSingleFileRipper {
-
-
     public YoupornRipper(URL url) throws IOException {
         super(url);
     }
@@ -46,12 +45,12 @@ public class YoupornRipper extends AbstractSingleFileRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> results = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> results = new ArrayList<>();
         Elements videos = doc.select("video");
 
         Element video = videos.get(0);
-        results.add(video.attr("src"));
+        results.add(new DownloadItem(video.attr("src")));
         return results;
     }
 
@@ -71,7 +70,7 @@ public class YoupornRipper extends AbstractSingleFileRipper {
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index));
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index));
     }
 }

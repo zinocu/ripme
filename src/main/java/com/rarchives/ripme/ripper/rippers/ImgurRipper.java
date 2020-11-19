@@ -19,6 +19,7 @@ import org.jsoup.safety.Whitelist;
 import org.jsoup.select.Elements;
 
 import com.rarchives.ripme.ripper.AlbumRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.ui.RipStatusMessage.STATUS;
 import com.rarchives.ripme.utils.Http;
 import com.rarchives.ripme.utils.Utils;
@@ -230,14 +231,14 @@ public class ImgurRipper extends AlbumRipper {
             }
             saveAs += imgurImage.getSaveAs();
             saveAs = saveAs.replaceAll("\\?\\d", "");
-            addURLToDownload(imgurImage.url, new File(saveAs));
+            addURLToDownload(imgurImage.downloadItem, new File(saveAs));
         }
     }
 
     public static ImgurAlbum getImgurSeries(URL url) throws IOException {
         Pattern p = Pattern.compile("^.*imgur\\.com/([a-zA-Z0-9,]*).*$");
         Matcher m = p.matcher(url.toExternalForm());
-        ImgurAlbum album = new ImgurAlbum(url);
+        ImgurAlbum album = new ImgurAlbum(new DownloadItem(url));
         if (m.matches()) {
             String[] imageIds = m.group(1).split(",");
             for (String imageId : imageIds) {
@@ -257,7 +258,7 @@ public class ImgurRipper extends AlbumRipper {
                         continue;
                     }
                     String original = links.getString("original");
-                    ImgurImage theImage = new ImgurImage(new URL(original));
+                    ImgurImage theImage = new ImgurImage(new DownloadItem(original));
                     album.addImage(theImage);
                 } catch (Exception e) {
                     LOGGER.error("Got exception while fetching imgur ID " + imageId, e);
@@ -277,13 +278,13 @@ public class ImgurRipper extends AlbumRipper {
         // Try to use embedded JSON to retrieve images
         LOGGER.info(Jsoup.clean(doc.body().toString(), Whitelist.none()));
 
-            try {
-                JSONObject json = new JSONObject(Jsoup.clean(doc.body().toString(), Whitelist.none()));
-                JSONArray jsonImages = json.getJSONObject("data").getJSONArray("images");
-                return createImgurAlbumFromJsonArray(url, jsonImages);
-            } catch (JSONException e) {
-                LOGGER.debug("Error while parsing JSON at " + url + ", continuing", e);
-            }
+        try {
+            JSONObject json = new JSONObject(Jsoup.clean(doc.body().toString(), Whitelist.none()));
+            JSONArray jsonImages = json.getJSONObject("data").getJSONArray("images");
+            return createImgurAlbumFromJsonArray(new DownloadItem(url), jsonImages);
+        } catch (JSONException e) {
+            LOGGER.debug("Error while parsing JSON at " + url + ", continuing", e);
+        }
 
         // TODO If album is empty, use this to check for cached images:
         // http://i.rarchives.com/search.cgi?cache=http://imgur.com/a/albumID
@@ -299,7 +300,7 @@ public class ImgurRipper extends AlbumRipper {
 
         // Fall back to parsing HTML elements
         // NOTE: This does not always get the highest-resolution images!
-        ImgurAlbum imgurAlbum = new ImgurAlbum(url);
+        ImgurAlbum imgurAlbum = new ImgurAlbum(new DownloadItem(url));
         for (Element thumb : doc.select("div.image")) {
             String image;
             if (!thumb.select("a.zoom").isEmpty()) {
@@ -315,7 +316,7 @@ public class ImgurRipper extends AlbumRipper {
             if (image.endsWith(".gif") && Utils.getConfigBoolean("prefer.mp4", false)) {
                 image = image.replace(".gif", ".mp4");
             }
-            ImgurImage imgurImage = new ImgurImage(new URL(image));
+            ImgurImage imgurImage = new ImgurImage(new DownloadItem(new URL(image), imgurAlbum.downloadItem.sourceCreatedTimeSeconds));
             imgurAlbum.addImage(imgurImage);
         }
         return imgurAlbum;
@@ -326,12 +327,12 @@ public class ImgurRipper extends AlbumRipper {
         return p.matcher(doc.body().html());
     }
 
-    private static ImgurAlbum createImgurAlbumFromJsonArray(URL url, JSONArray jsonImages) throws MalformedURLException {
-        ImgurAlbum imgurAlbum = new ImgurAlbum(url);
+    private static ImgurAlbum createImgurAlbumFromJsonArray(DownloadItem downloadItem, JSONArray jsonImages) throws MalformedURLException {
+        ImgurAlbum imgurAlbum = new ImgurAlbum(downloadItem);
         int imagesLength = jsonImages.length();
         for (int i = 0; i < imagesLength; i++) {
             JSONObject ob = jsonImages.getJSONObject(i);
-            imgurAlbum.addImage(new ImgurImage( new URL(ob.getString("link"))));
+            imgurAlbum.addImage(new ImgurImage(new DownloadItem(new URL(ob.getString("link")), downloadItem.sourceCreatedTimeSeconds)));
         }
         return imgurAlbum;
     }
@@ -340,15 +341,12 @@ public class ImgurRipper extends AlbumRipper {
         return new ImgurImage(extractImageUrlFromJson(json));
     }
 
-    private static URL extractImageUrlFromJson(JSONObject json) throws MalformedURLException {
+    private static DownloadItem extractImageUrlFromJson(JSONObject json) throws MalformedURLException {
         String ext = json.getString("ext");
         if (ext.equals(".gif") && Utils.getConfigBoolean("prefer.mp4", false)) {
             ext = ".mp4";
         }
-        return  new URL(
-                "http://i.imgur.com/"
-                        + json.getString("hash")
-                        + ext);
+        return new DownloadItem(new URL("http://i.imgur.com/" + json.getString("hash") + ext));
     }
 
     private static Document getDocument(String strUrl) throws IOException {
@@ -422,7 +420,7 @@ public class ImgurRipper extends AlbumRipper {
                     if (Utils.getConfigBoolean("download.save_order", true)) {
                         prefix = String.format("%03d_", imagesFound);
                     }
-                    addURLToDownload(new URL(imageUrl), prefix);
+                    addURLToDownload(new DownloadItem(new URL(imageUrl)), prefix);
                 }
                 if (imagesFound >= imagesTotal) {
                     break;
@@ -456,7 +454,7 @@ public class ImgurRipper extends AlbumRipper {
                     image = image.replace("b.", ".");
                 }
                 URL imageURL = new URL(image);
-                addURLToDownload(imageURL);
+                addURLToDownload(new DownloadItem(imageURL));
             }
             if (imgs.isEmpty()) {
                 break;
@@ -576,27 +574,27 @@ public class ImgurRipper extends AlbumRipper {
         String title = "";
         String description = "";
         String extension   = "";
-        public URL url = null;
+        public DownloadItem downloadItem = null;
 
-        ImgurImage(URL url) {
-            this.url = url;
-            String tempUrl = url.toExternalForm();
+        ImgurImage(DownloadItem downloadItem) {
+            this.downloadItem = downloadItem;
+            String tempUrl = downloadItem.url.toExternalForm();
             this.extension = tempUrl.substring(tempUrl.lastIndexOf('.'));
             if (this.extension.contains("?")) {
                 this.extension = this.extension.substring(0, this.extension.indexOf("?"));
             }
         }
-        ImgurImage(URL url, String title) {
-            this(url);
+        ImgurImage(DownloadItem downloadItem, String title) {
+            this(downloadItem);
             this.title = title;
         }
-        public ImgurImage(URL url, String title, String description) {
-            this(url, title);
+        public ImgurImage(DownloadItem downloadItem, String title, String description) {
+            this(downloadItem, title);
             this.description = description;
         }
         String getSaveAs() {
             String saveAs = this.title;
-            String u = url.toExternalForm();
+            String u = downloadItem.url.toExternalForm();
             if (u.contains("?")) {
                 u = u.substring(0, u.indexOf("?"));
             }
@@ -613,13 +611,13 @@ public class ImgurRipper extends AlbumRipper {
 
     public static class ImgurAlbum {
         String title = null;
-        public URL    url = null;
+        public DownloadItem downloadItem = null;
         public List<ImgurImage> images = new ArrayList<>();
-        ImgurAlbum(URL url) {
-            this.url = url;
+        ImgurAlbum(DownloadItem downloadItem) {
+            this.downloadItem = downloadItem;
         }
-        public ImgurAlbum(URL url, String title) {
-            this(url);
+        public ImgurAlbum(DownloadItem downloadItem, String title) {
+            this(downloadItem);
             this.title = title;
         }
         void addImage(ImgurImage image) {

@@ -13,6 +13,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 
 public class ManganeloRipper extends AbstractHTMLRipper {
@@ -64,8 +65,8 @@ public class ManganeloRipper extends AbstractHTMLRipper {
         }
     }
 
-    private List<String> getURLsFromChap(String url) {
-        List<String> result = new ArrayList<>();
+    private List<DownloadItem> getURLsFromChap(String url) {
+        List<DownloadItem> result = new ArrayList<>();
         try {
             Document doc = Http.url(url).get();
 
@@ -76,18 +77,18 @@ public class ManganeloRipper extends AbstractHTMLRipper {
 
     }
 
-    private List<String> getURLsFromChap(Document doc) {
+    private List<DownloadItem> getURLsFromChap(Document doc) throws MalformedURLException {
         LOGGER.debug("Getting urls from " + doc.location());
-        List<String> result = new ArrayList<>();
+        List<DownloadItem> result = new ArrayList<>();
         for (Element el : doc.select(".vung-doc > img")) {
-            result.add(el.attr("src"));
+            result.add(new DownloadItem(el.attr("src")));
         }
         return result;
     }
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> result = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> result = new ArrayList<>();
         List<String> urlsToGrab = new ArrayList<>();
         if (url.toExternalForm().contains("/manga/")) {
             for (Element el : doc.select("div.chapter-list > div.row > span > a")) {
@@ -105,7 +106,7 @@ public class ManganeloRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index));
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index));
     }
 }

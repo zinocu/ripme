@@ -12,6 +12,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 
 
@@ -152,9 +153,9 @@ public class XhamsterRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
         LOGGER.debug("Checking for urls");
-        List<String> result = new ArrayList<>();
+        List<DownloadItem> result = new ArrayList<>();
         if (!isVideoUrl(url)) {
           for (Element page : doc.select("div.picture_view > div.pictures_block > div.items > div.item-container > a.item")) {
               // Make sure we don't waste time running the loop if the ripper has been stopped
@@ -181,13 +182,13 @@ public class XhamsterRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index));
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index));
     }
 
     private void downloadFile(String url) {
         try {
-            addURLToDownload(new URL(url), getPrefix(index));
+            addURLToDownload(new DownloadItem(url), getPrefix(index));
             index = index + 1;
         } catch (MalformedURLException e) {
             LOGGER.error("The url \"" + url + "\" is malformed");

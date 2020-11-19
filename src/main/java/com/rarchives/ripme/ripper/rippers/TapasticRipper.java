@@ -14,6 +14,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 import com.rarchives.ripme.utils.Utils;
 
@@ -52,8 +53,8 @@ public class TapasticRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document page) {
-        List<String> urls = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document page) throws MalformedURLException {
+        List<DownloadItem> urls = new ArrayList<>();
         String html = page.data();
         if (!html.contains("episodeList : ")) {
             LOGGER.error("No 'episodeList' found at " + this.url);
@@ -65,13 +66,13 @@ public class TapasticRipper extends AbstractHTMLRipper {
             JSONObject obj = json.getJSONObject(i);
             TapasticEpisode episode = new TapasticEpisode(i, obj.getInt("id"), obj.getString("title"));
             episodes.add(episode);
-            urls.add("http://tapastic.com/episode/" + episode.id);
+            urls.add(new DownloadItem("http://tapastic.com/episode/" + episode.id));
         }
         return urls;
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
+    public void downloadURL(DownloadItem downloadItem, int index) {
         try {
             Document doc = Http.url(url).get();
             Elements images = doc.select("article.ep-contents img");
@@ -87,7 +88,7 @@ public class TapasticRipper extends AbstractHTMLRipper {
                 prefix.append(String.format("-%0" + imgLog + "dof%0" + imgLog + "d-", i + 1, images.size()));
                 prefix.append(episode.filename.replace(" ", "-"));
                 prefix.append("-");
-                addURLToDownload(new URL(link), prefix.toString());
+                addURLToDownload(new DownloadItem(link), prefix.toString());
                 if (isThisATest()) {
                     break;
                 }

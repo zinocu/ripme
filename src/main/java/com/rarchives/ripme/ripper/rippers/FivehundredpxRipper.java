@@ -16,6 +16,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 
 import com.rarchives.ripme.ripper.AbstractJSONRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.ui.RipStatusMessage.STATUS;
 import com.rarchives.ripme.utils.Http;
 
@@ -255,8 +256,8 @@ public class FivehundredpxRipper extends AbstractJSONRipper {
     }
 
     @Override
-    public List<String> getURLsFromJSON(JSONObject json) {
-        List<String> imageURLs = new ArrayList<>();
+    public List<DownloadItem> getURLsFromJSON(JSONObject json) throws MalformedURLException {
+        List<DownloadItem> imageURLs = new ArrayList<>();
         JSONArray photos = json.getJSONArray("photos");
         for (int i = 0; i < photos.length(); i++) {
             if (super.isStopped()) {
@@ -299,7 +300,7 @@ public class FivehundredpxRipper extends AbstractJSONRipper {
                 LOGGER.error("Failed to find image for photo " + photo.toString());
             }
             else {
-                imageURLs.add(imageURL);
+                imageURLs.add(new DownloadItem(imageURL));
                 if (isThisATest()) {
                     break;
                 }
@@ -327,12 +328,12 @@ public class FivehundredpxRipper extends AbstractJSONRipper {
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
+    public void downloadURL(DownloadItem downloadItem, int index) {
         String u = url.toExternalForm();
         String[] fields = u.split("/");
         String prefix = getPrefix(index) + fields[fields.length - 3];
         File saveAs = new File(getWorkingDir() + File.separator + prefix + ".jpg");
-        addURLToDownload(url,  saveAs,  "", null, false);
+        addURLToDownload(downloadItem,  saveAs,  "", null, false);
     }
 
 }

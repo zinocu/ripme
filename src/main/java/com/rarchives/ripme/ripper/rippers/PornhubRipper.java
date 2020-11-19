@@ -10,6 +10,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
+
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
@@ -58,8 +60,8 @@ public class PornhubRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    protected List<String> getURLsFromPage(Document page) {
-        List<String> pageURLs = new ArrayList<>();
+    protected List<DownloadItem> getURLsFromPage(Document page) throws MalformedURLException {
+        List<DownloadItem> pageURLs = new ArrayList<>();
         // Find thumbnails
         Elements thumbs = page.select(".photoBlockBox li");
         // Iterate over thumbnail images on page
@@ -67,14 +69,14 @@ public class PornhubRipper extends AbstractHTMLRipper {
             String imagePage = thumb.select(".photoAlbumListBlock > a")
                     .first().attr("href");
             String fullURL = "https://pornhub.com" + imagePage;
-            pageURLs.add(fullURL);
+            pageURLs.add(new DownloadItem(fullURL));
         }
         return pageURLs;
     }
 
     @Override
-    protected void downloadURL(URL url, int index) {
-        PornhubImageThread t = new PornhubImageThread(url, index, this.workingDir);
+    protected void downloadURL(DownloadItem downloadItem, int index) {
+        PornhubImageThread t = new PornhubImageThread(downloadItem, index, this.workingDir);
         pornhubThreadPool.addThread(t);
         try {
             Thread.sleep(IMAGE_SLEEP_TIME);
@@ -127,12 +129,12 @@ public class PornhubRipper extends AbstractHTMLRipper {
      * Handles case when site has IP-banned the user.
      */
     private class PornhubImageThread extends Thread {
-        private URL url;
+        private DownloadItem downloadItem;
         private int index;
 
-        PornhubImageThread(URL url, int index, File workingDir) {
+        PornhubImageThread(DownloadItem downloadItem, int index, File workingDir) {
             super();
-            this.url = url;
+            this.downloadItem = downloadItem;
             this.index = index;
         }
 
@@ -143,8 +145,8 @@ public class PornhubRipper extends AbstractHTMLRipper {
 
         private void fetchImage() {
             try {
-                Document doc = Http.url(this.url)
-                                   .referrer(this.url)
+                Document doc = Http.url(this.downloadItem.url)
+                                   .referrer(this.downloadItem.url)
                                    .get();
 
                 // Find image
@@ -159,11 +161,11 @@ public class PornhubRipper extends AbstractHTMLRipper {
                     prefix = String.format("%03d_", index);
                 }
 
-                URL imgurl = new URL(url, imgsrc);
-                addURLToDownload(imgurl, prefix);
+                URL imgurl = new URL(downloadItem.url, imgsrc);
+                addURLToDownload(new DownloadItem(imgurl), prefix);
 
             } catch (IOException e) {
-                LOGGER.error("[!] Exception while loading/parsing " + this.url, e);
+                LOGGER.error("[!] Exception while loading/parsing " + this.downloadItem, e);
             }
         }
     }

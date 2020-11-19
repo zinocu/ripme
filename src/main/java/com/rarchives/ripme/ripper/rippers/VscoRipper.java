@@ -1,6 +1,7 @@
 package com.rarchives.ripme.ripper.rippers;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -62,14 +63,19 @@ public class VscoRipper extends AbstractHTMLRipper {
     }
 
     /**
-     * <p>Gets the direct URL of full-sized image through the <meta> tag.</p>
-     * When expanding future functionality (e.g. support from journals), put everything into this method.
+     * <p>
+     * Gets the direct URL of full-sized image through the <meta> tag.
+     * </p>
+     * When expanding future functionality (e.g. support from journals), put
+     * everything into this method.
+     * 
      * @param page
-     * @return 
+     * @return
+     * @throws MalformedURLException
      */
     @Override
-    public List<String> getURLsFromPage(Document page){
-        List<String> toRip = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document page) throws MalformedURLException {
+        List<DownloadItem> toRip = new ArrayList<>();
         //If user wanted to rip single image
         if (url.toString().contains("/media/")){
             try {
@@ -85,7 +91,8 @@ public class VscoRipper extends AbstractHTMLRipper {
             while (true) {
                 profileJSON = getProfileJSON(userTkn, username, Integer.toString(pageNumber), siteID);
                 for (int i = 0; i < profileJSON.getJSONArray("media").length(); i++) {
-                    toRip.add("https://" + profileJSON.getJSONArray("media").getJSONObject(i).getString("responsive_url"));
+                    String link = "https://" + profileJSON.getJSONArray("media").getJSONObject(i).getString("responsive_url");
+                    toRip.add(new DownloadItem(link));
                 }
                 if (pageNumber * 1000 > profileJSON.getInt("total")) {
                     return toRip;
@@ -152,12 +159,12 @@ public class VscoRipper extends AbstractHTMLRipper {
         }
     }
 
-    private String vscoImageToURL(String url) throws IOException{
+    private DownloadItem vscoImageToURL(String url) throws IOException{
         Document page = Jsoup.connect(url).userAgent(USER_AGENT)
                                           .get();
         //create Elements filled only with Elements with the "meta" tag.
         Elements metaTags = page.getElementsByTag("meta");
-        String result = "";
+        DownloadItem result = null;
 
         for(Element metaTag : metaTags){
             //find URL inside meta-tag with property of "og:image"
@@ -165,14 +172,14 @@ public class VscoRipper extends AbstractHTMLRipper {
                 String givenURL = metaTag.attr("content");
                 givenURL = givenURL.replaceAll("\\?h=[0-9]+", "");//replace the "?h=xxx" tag at the end of the URL (where each x is a number)
                 
-                result = givenURL;
+                result = new DownloadItem(givenURL);
                 LOGGER.debug("Found image URL: " + givenURL);
                 break;//immediately stop after getting URL (there should only be 1 image to be downloaded)
             }
         }
         
         //Means website changed, things need to be fixed.
-        if (result.isEmpty()){
+        if (result == null) {
             LOGGER.error("Could not find image URL at: " + url);
         }
         
@@ -223,8 +230,8 @@ public class VscoRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index));
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index));
     }
     
 }

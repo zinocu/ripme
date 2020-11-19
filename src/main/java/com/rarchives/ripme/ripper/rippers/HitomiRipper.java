@@ -12,8 +12,8 @@ import org.json.JSONArray;
 import org.jsoup.nodes.Document;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
-import org.jsoup.nodes.Element;
 
 public class HitomiRipper extends AbstractHTMLRipper {
 
@@ -53,12 +53,13 @@ public class HitomiRipper extends AbstractHTMLRipper {
 
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> result = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> result = new ArrayList<>();
         String json = doc.text().replaceAll("var galleryinfo =", "");
         JSONArray json_data = new JSONArray(json);
         for (int i = 0; i < json_data.length(); i++) {
-            result.add("https://ba.hitomi.la/galleries/" + galleryId + "/" + json_data.getJSONObject(i).getString("name"));
+            String link = "https://ba.hitomi.la/galleries/" + galleryId + "/" + json_data.getJSONObject(i).getString("name");
+            result.add(new DownloadItem(link));
         }
 
         return result;
@@ -78,7 +79,7 @@ public class HitomiRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index));
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index));
     }
 }

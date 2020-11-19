@@ -16,12 +16,12 @@ import org.json.JSONObject;
 import org.jsoup.HttpStatusException;
 
 import com.rarchives.ripme.ripper.AlbumRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.ui.RipStatusMessage.STATUS;
 import com.rarchives.ripme.utils.Http;
 import com.rarchives.ripme.utils.Utils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
 
 public class TumblrRipper extends AlbumRipper {
 
@@ -267,10 +267,10 @@ public class TumblrRipper extends AlbumRipper {
 
                         m = p.matcher(fileURL.toString());
                         if (m.matches()) {
-                            downloadURL(fileURL, date);
+                            downloadURL(new DownloadItem(fileURL), date);
                         } else {
                             URL redirectedURL = Http.url(fileURL).ignoreContentType().response().url();
-                            downloadURL(redirectedURL, date);
+                            downloadURL(new DownloadItem(redirectedURL), date);
                         }
                     } catch (Exception e) {
                         LOGGER.error("[!] Error while parsing photo in " + photo, e);
@@ -279,7 +279,7 @@ public class TumblrRipper extends AlbumRipper {
             } else if (post.has("video_url")) {
                 try {
                     fileURL = new URL(post.getString("video_url").replaceAll("http:", "https:"));
-                    downloadURL(fileURL, date);
+                    downloadURL(new DownloadItem(fileURL), date);
                 } catch (Exception e) {
                     LOGGER.error("[!] Error while parsing video in " + post, e);
                     return true;
@@ -293,7 +293,7 @@ public class TumblrRipper extends AlbumRipper {
                         // If the image is any smaller, it will still get the largest available size
                         qualM = qualP.matcher(imgSrc);
                         imgSrc = qualM.replaceFirst("_1280.$1");
-                        downloadURL(new URL(imgSrc), date);
+                        downloadURL(new DownloadItem(imgSrc), date);
                     } catch (MalformedURLException e) {
                         LOGGER.error("[!] Error while getting embedded image at " + post, e);
                         return true;
@@ -412,12 +412,12 @@ public class TumblrRipper extends AlbumRipper {
         return prefix;
     }
 
-    public void downloadURL(URL url, String date) {
+    public void downloadURL(DownloadItem downloadItem, String date) {
         LOGGER.info(albumType);
         if (albumType == ALBUM_TYPE.TAG) {
-            addURLToDownload(url, date + " ");
+            addURLToDownload(downloadItem, date + " ");
         }
-        addURLToDownload(url, getPrefix(index));
+        addURLToDownload(downloadItem, getPrefix(index));
         index++;
     }
 

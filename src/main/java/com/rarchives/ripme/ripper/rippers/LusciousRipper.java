@@ -13,6 +13,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.ripper.DownloadThreadPool;
 import com.rarchives.ripme.utils.Http;
 
@@ -45,11 +46,11 @@ public class LusciousRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document page) {
-        List<String> urls = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document page) throws MalformedURLException {
+        List<DownloadItem> urls = new ArrayList<>();
         Elements urlElements = page.select("div.item.thumbnail.ic_container > a");
         for (Element e : urlElements) {
-            urls.add(e.attr("abs:href"));
+            urls.add(new DownloadItem(e.attr("abs:href")));
         }
 
         return urls;
@@ -78,8 +79,8 @@ public class LusciousRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        lusciousThreadPool.addThread(new LusciousDownloadThread(url, index));
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        lusciousThreadPool.addThread(new LusciousDownloadThread(downloadItem, index));
     }
 
     @Override
@@ -122,18 +123,18 @@ public class LusciousRipper extends AbstractHTMLRipper {
     }
 
     public class LusciousDownloadThread extends Thread {
-        private URL url;
+        private DownloadItem downloadItem;
         private int index;
 
-        public LusciousDownloadThread(URL url, int index) {
-            this.url = url;
+        public LusciousDownloadThread(DownloadItem downloadItem, int index) {
+            this.downloadItem = downloadItem;
             this.index = index;
         }
 
         @Override
         public void run() {
             try {
-                Document page = Http.url(url).retries(RETRY_COUNT).get();
+                Document page = Http.url(downloadItem.url).retries(RETRY_COUNT).get();
 
                 String downloadUrl = page.select(".icon-download").attr("abs:href");
                 if (downloadUrl.equals("")) {
@@ -145,10 +146,10 @@ public class LusciousRipper extends AbstractHTMLRipper {
                 }
 
                 //If a valid download url was found.
-                addURLToDownload(new URL(downloadUrl), getPrefix(index));
+                addURLToDownload(new DownloadItem(downloadUrl), getPrefix(index));
 
             } catch (IOException e) {
-                LOGGER.error("Error downloadiong url " + url, e);
+                LOGGER.error("Error downloadiong url " + downloadItem.url, e);
             }
         }
 

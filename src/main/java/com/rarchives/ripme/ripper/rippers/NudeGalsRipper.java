@@ -13,6 +13,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 
 public class NudeGalsRipper extends AbstractHTMLRipper {
@@ -59,22 +60,22 @@ public class NudeGalsRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> imageURLs = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> imageURLs = new ArrayList<>();
 
         Elements thumbs = doc.select("img.thumbnail");
         for (Element thumb : thumbs) {
             String link = thumb.attr("src").replaceAll("thumbs/th_", "");
             String imgSrc = "http://nude-gals.com/" + link;
-            imageURLs.add(imgSrc);
+            imageURLs.add(new DownloadItem(imgSrc));
         }
 
         return imageURLs;
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
+    public void downloadURL(DownloadItem downloadItem, int index) {
         // Send referrer when downloading images
-        addURLToDownload(url, getPrefix(index), "", this.url.toExternalForm(), null);
+        addURLToDownload(downloadItem, getPrefix(index), "", this.url.toExternalForm(), null);
     }
 }

@@ -1,8 +1,10 @@
 package com.rarchives.ripme.ripper.rippers;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -33,7 +35,9 @@ public class RedgifsRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public String getDomain() { return "redgifs.com"; }
+    public String getDomain() {
+        return "redgifs.com";
+    }
 
     @Override
     public String getHost() {
@@ -75,18 +79,18 @@ public class RedgifsRipper extends AbstractHTMLRipper {
             return Http.url(url).get();
         } else if (isSearch().matches()) {
             searchText = getGID(url).replace("-", " ");
-            return Http.url(
-                    new URL("https://napi.redgifs.com/v1/gfycats/search?search_text=" + searchText + "&count=" + searchCount + "&start=" + searchStart*searchCount)).ignoreContentType().get();
+            return Http.url(new URL("https://napi.redgifs.com/v1/gfycats/search?search_text=" + searchText + "&count="
+                    + searchCount + "&start=" + searchStart * searchCount)).ignoreContentType().get();
         } else {
             username = getGID(url);
-            return Http.url(new URL("https://napi.redgifs.com/v1/users/" +  username + "/gfycats?count=" + count))
-                       .ignoreContentType().get();
+            return Http.url(new URL("https://napi.redgifs.com/v1/users/" + username + "/gfycats?count=" + count))
+                    .ignoreContentType().get();
         }
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index));
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index));
     }
 
     @Override
@@ -105,18 +109,12 @@ public class RedgifsRipper extends AbstractHTMLRipper {
             return m.group(1).split("-")[0];
         }
         throw new MalformedURLException(
-                "Expected redgifs.com format: "
-                        + "redgifs.com/id or "
-                        + "thumbs.redgifs.com/id.gif"
-                        + " Got: " + url);
+                "Expected redgifs.com format: " + "redgifs.com/id or " + "thumbs.redgifs.com/id.gif" + " Got: " + url);
     }
 
     private String stripHTMLTags(String t) {
-        t = t.replaceAll("<html>\n" +
-                                 " <head></head>\n" +
-                                 " <body>", "");
-        t = t.replaceAll("</body>\n" +
-                                 "</html>", "");
+        t = t.replaceAll("<html>\n" + " <head></head>\n" + " <body>", "");
+        t = t.replaceAll("</body>\n" + "</html>", "");
         t = t.replaceAll("\n", "");
         t = t.replaceAll("=\"\"", "");
         return t;
@@ -125,24 +123,23 @@ public class RedgifsRipper extends AbstractHTMLRipper {
     @Override
     public Document getNextPage(Document doc) throws IOException {
         if (isSearch().matches()) {
-            Document d = Http.url(
-                    new URL("https://napi.redgifs.com/v1/gfycats/search?search_text=" + searchText
-                                    + "&count=" + searchCount + "&start=" + searchCount*++searchStart))
-                       .ignoreContentType().get();
+            Document d = Http.url(new URL("https://napi.redgifs.com/v1/gfycats/search?search_text=" + searchText
+                    + "&count=" + searchCount + "&start=" + searchCount * ++searchStart)).ignoreContentType().get();
             return (hasURLs(d).isEmpty()) ? null : d;
         } else {
             if (cursor.equals("")) {
                 return null;
             } else {
-                Document d =  Http.url(new URL("https://napi.redgifs.com/v1/users/" +  username + "/gfycats?count=" + count + "&cursor=" + cursor)).ignoreContentType().get();
+                Document d = Http.url(new URL("https://napi.redgifs.com/v1/users/" + username + "/gfycats?count="
+                        + count + "&cursor=" + cursor)).ignoreContentType().get();
                 return (hasURLs(d).isEmpty()) ? null : d;
             }
         }
     }
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> result = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> result = new ArrayList<>();
         if (isProfile().matches() || isSearch().matches()) {
             result = hasURLs(doc);
         } else {
@@ -151,7 +148,8 @@ public class RedgifsRipper extends AbstractHTMLRipper {
                 String json = el.html();
                 if (json.startsWith("{")) {
                     JSONObject page = new JSONObject(json);
-                    result.add(page.getJSONObject("video").getString("contentUrl"));
+                    String link = page.getJSONObject("video").getString("contentUrl");
+                    result.add(new DownloadItem(link));
                 }
             }
         }
@@ -160,15 +158,19 @@ public class RedgifsRipper extends AbstractHTMLRipper {
 
     /**
      * Helper method for retrieving URLs.
+     * 
      * @param doc Document of the URL page to look through
      * @return List of URLs to download
+     * @throws JSONException
+     * @throws MalformedURLException
      */
-    public List<String> hasURLs(Document doc) {
-        List<String> result = new ArrayList<>();
+    public List<DownloadItem> hasURLs(Document doc) throws MalformedURLException {
+        List<DownloadItem> result = new ArrayList<>();
         JSONObject page = new JSONObject(stripHTMLTags(doc.html()));
         JSONArray content = page.getJSONArray("gfycats");
         for (int i = 0; i < content.length(); i++) {
-            result.add(content.getJSONObject(i).getString("mp4Url"));
+            String link = content.getJSONObject(i).getString("mp4Url");
+            result.add(new DownloadItem(link));
         }
         cursor = page.getString("cursor");
         return result;

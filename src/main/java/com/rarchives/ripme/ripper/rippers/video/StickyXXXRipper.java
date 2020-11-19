@@ -9,6 +9,7 @@ import java.util.regex.Pattern;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.ripper.VideoRipper;
 import com.rarchives.ripme.utils.Http;
 
@@ -60,7 +61,7 @@ public class StickyXXXRipper extends VideoRipper {
             throw new IOException("Could not find Embed code at " + url);
         }
         String vidUrl = videos.attr("src");
-        addURLToDownload(new URL(vidUrl), HOST + "_" + getGID(this.url));
+        addURLToDownload(new DownloadItem(vidUrl), HOST + "_" + getGID(this.url));
         waitForThreads();
     }
 }

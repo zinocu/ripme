@@ -15,6 +15,7 @@ import java.util.HashMap;
 import org.jsoup.Connection.Response;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 
 public class WebtoonsRipper extends AbstractHTMLRipper {
@@ -65,19 +66,19 @@ public class WebtoonsRipper extends AbstractHTMLRipper {
 
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> result = new ArrayList<String>();
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> result = new ArrayList<>();
         for (Element elem : doc.select("div.viewer_img > img")) {
             String origUrl = elem.attr("data-url");
             String[] finalUrl = origUrl.split("\\?type");
-            result.add(finalUrl[0]);
+            result.add(new DownloadItem(finalUrl[0]));
         }
         return result;
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index), "", this.url.toExternalForm(), cookies);
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index), "", this.url.toExternalForm(), cookies);
     }
 
     @Override

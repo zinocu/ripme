@@ -13,6 +13,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.ripper.DownloadThreadPool;
 import com.rarchives.ripme.utils.Http;
 import com.rarchives.ripme.utils.Utils;
@@ -61,11 +62,11 @@ public class HentaiNexusRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> imageURLs = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> imageURLs = new ArrayList<>();
         Elements thumbs = doc.select("div.is-multiline > div.column > a");
         for (Element el : thumbs) {
-           imageURLs.add("https://" + getDomain() + el.attr("href"));
+           imageURLs.add(new DownloadItem("https://" + getDomain() + el.attr("href")));
         }
         return imageURLs;
     }
@@ -83,8 +84,8 @@ public class HentaiNexusRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        HentaiNexusImageThread t = new HentaiNexusImageThread(url, index);
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        HentaiNexusImageThread t = new HentaiNexusImageThread(downloadItem, index);
         hentainexusThreadPool.addThread(t);
     }
 
@@ -92,12 +93,12 @@ public class HentaiNexusRipper extends AbstractHTMLRipper {
      * Helper class to find and download images found on "image" pages
      */
     private class HentaiNexusImageThread extends Thread {
-        private URL url;
+        private DownloadItem downloadItem;
         private int index;
 
-        HentaiNexusImageThread(URL url, int index) {
+        HentaiNexusImageThread(DownloadItem downloadItem, int index) {
             super();
-            this.url = url;
+            this.downloadItem = downloadItem;
             this.index = index;
         }
 
@@ -108,10 +109,10 @@ public class HentaiNexusRipper extends AbstractHTMLRipper {
 
         private void fetchImage() {
             try {
-                Document doc = Http.url(url).retries(3).get();
+                Document doc = Http.url(downloadItem.url).retries(3).get();
                 Elements images = doc.select("figure.image > img");
                 if (images.isEmpty()) {
-                    LOGGER.warn("Image not found at " + this.url);
+                    LOGGER.warn("Image not found at " + this.downloadItem.url);
                     return;
                 }
                 Element image = images.first();
@@ -120,9 +121,9 @@ public class HentaiNexusRipper extends AbstractHTMLRipper {
                 if (Utils.getConfigBoolean("download.save_order", true)) {
                     prefix = String.format("%03d_", index);
                 }
-                addURLToDownload(new URL(imgsrc), prefix);
+                addURLToDownload(new DownloadItem(new URL(imgsrc)), prefix);
             } catch (IOException e) {
-                LOGGER.error("[!] Exception while loading/parsing " + this.url, e);
+                LOGGER.error("[!] Exception while loading/parsing " + this.downloadItem.url, e);
             }
         }
     }

@@ -12,6 +12,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 
 public class HypnohubRipper extends AbstractHTMLRipper {
@@ -52,22 +53,20 @@ public class HypnohubRipper extends AbstractHTMLRipper {
         return Http.url(url).get();
     }
 
-    private String ripPost(String url) throws IOException {
+    private DownloadItem ripPost(String url) throws IOException {
         LOGGER.info(url);
         Document doc = Http.url(url).get();
-        return "https:" +  doc.select("img.image").attr("src");
-
+        return new DownloadItem("https:" +  doc.select("img.image").attr("src"));
     }
 
-    private String ripPost(Document doc) {
+    private DownloadItem ripPost(Document doc) throws MalformedURLException {
         LOGGER.info(url);
-        return "https:" +  doc.select("img.image").attr("src");
-
+        return new DownloadItem("https:" +  doc.select("img.image").attr("src"));
     }
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> result = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> result = new ArrayList<>();
         if (url.toExternalForm().contains("/pool")) {
             for (Element el : doc.select("ul[id=post-list-posts] > li > div > a.thumb")) {
                 try {
@@ -83,7 +82,7 @@ public class HypnohubRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index));
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index));
     }
 }

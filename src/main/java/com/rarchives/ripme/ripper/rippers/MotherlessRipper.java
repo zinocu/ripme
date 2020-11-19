@@ -12,8 +12,8 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.ripper.DownloadThreadPool;
-import com.rarchives.ripme.ui.RipStatusMessage.STATUS;
 import com.rarchives.ripme.utils.Http;
 import com.rarchives.ripme.utils.Utils;
 import org.jsoup.select.Elements;
@@ -78,8 +78,8 @@ public class MotherlessRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    protected List<String> getURLsFromPage(Document page) {
-        List<String> pageURLs = new ArrayList<>();
+    protected List<DownloadItem> getURLsFromPage(Document page) throws MalformedURLException {
+        List<DownloadItem> pageURLs = new ArrayList<>();
 
         for (Element thumb : page.select("div.thumb-container a.img-container")) {
             if (isStopped()) {
@@ -96,7 +96,7 @@ public class MotherlessRipper extends AbstractHTMLRipper {
             } else {
                 url = thumbURL;
             }
-            pageURLs.add(url);
+            pageURLs.add(new DownloadItem(url));
 
             if (isThisATest()) {
                 break;
@@ -107,9 +107,9 @@ public class MotherlessRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    protected void downloadURL(URL url, int index) {
+    protected void downloadURL(DownloadItem downloadItem, int index) {
         // Create thread for finding image at "url" page
-        MotherlessImageThread mit = new MotherlessImageThread(url, index);
+        MotherlessImageThread mit = new MotherlessImageThread(downloadItem, index);
         motherlessThreadPool.addThread(mit);
         try {
             Thread.sleep(IMAGE_SLEEP_TIME);
@@ -153,12 +153,12 @@ public class MotherlessRipper extends AbstractHTMLRipper {
      * Helper class to find and download images found on "image" pages
      */
     private class MotherlessImageThread extends Thread {
-        private URL url;
+        private DownloadItem downloadItem;
         private int index;
 
-        MotherlessImageThread(URL url, int index) {
+        MotherlessImageThread(DownloadItem downloadItem, int index) {
             super();
-            this.url = url;
+            this.downloadItem = downloadItem;
             this.index = index;
         }
 
@@ -168,7 +168,7 @@ public class MotherlessRipper extends AbstractHTMLRipper {
                 if (isStopped() && !isThisATest()) {
                     return;
                 }
-                String u = this.url.toExternalForm();
+                String u = this.downloadItem.url.toExternalForm();
                 Document doc = Http.url(u)
                                    .referrer(u)
                                    .get();
@@ -180,12 +180,12 @@ public class MotherlessRipper extends AbstractHTMLRipper {
                     if (Utils.getConfigBoolean("download.save_order", true)) {
                         prefix = String.format("%03d_", index);
                     }
-                    addURLToDownload(new URL(file), prefix);
+                    addURLToDownload(new DownloadItem(file), prefix);
                 } else {
-                    LOGGER.warn("[!] could not find '__fileurl' at " + url);
+                    LOGGER.warn("[!] could not find '__fileurl' at " + downloadItem.url);
                 }
             } catch (IOException e) {
-                LOGGER.error("[!] Exception while loading/parsing " + this.url, e);
+                LOGGER.error("[!] Exception while loading/parsing " + this.downloadItem.url, e);
             }
         }
     }

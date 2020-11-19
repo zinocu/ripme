@@ -13,6 +13,7 @@ import java.util.regex.Pattern;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.jsoup.nodes.Document;
 
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.ripper.VideoRipper;
 import com.rarchives.ripme.utils.Http;
 
@@ -146,7 +147,7 @@ public class PornhubRipper extends VideoRipper {
         if (vidUrl.equals("")) {
             throw new IOException("Unable to find encrypted video URL at " + this.url);
         }
-        addURLToDownload(new URL(vidUrl), HOST + "_" + bestQuality + "p_" + getGID(this.url));
+        addURLToDownload(new DownloadItem(vidUrl), HOST + "_" + bestQuality + "p_" + getGID(this.url));
 
         waitForThreads();
     }

@@ -15,6 +15,7 @@ import org.json.JSONObject;
 import org.json.JSONArray;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 
 import org.jsoup.nodes.Document;
@@ -73,15 +74,15 @@ public class MastodonRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> result = new ArrayList<String>();
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> result = new ArrayList<>();
         for (Element el : doc.select("[data-component=\"MediaGallery\"]")) {
             String props = el.attr("data-props");
             JSONObject obj = new JSONObject(props);
             JSONArray arr = obj.getJSONArray("media");
             for (int i = 0; i < arr.length(); i++) {
                 String url = arr.getJSONObject(i).getString("url");
-                result.add(url);
+                result.add(new DownloadItem(url));
                 String id = arr.getJSONObject(i).getString("id");
                 itemIDs.put(url, id);
             }
@@ -90,7 +91,7 @@ public class MastodonRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, itemIDs.get(url.toString()) + "_");
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, itemIDs.get(url.toString()) + "_");
     }
 }

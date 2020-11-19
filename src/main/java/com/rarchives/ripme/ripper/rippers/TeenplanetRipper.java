@@ -9,6 +9,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
+
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
@@ -40,8 +42,8 @@ public class TeenplanetRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    protected List<String> getURLsFromPage(Document page) {
-        List<String> imageURLs = new ArrayList<>();
+    protected List<DownloadItem> getURLsFromPage(Document page) throws MalformedURLException {
+        List<DownloadItem> imageURLs = new ArrayList<>();
         for (Element thumb : page.select("#galleryImages > a > img")) {
             if (!thumb.hasAttr("src")) {
                 continue;
@@ -50,19 +52,19 @@ public class TeenplanetRipper extends AbstractHTMLRipper {
             imageURL = imageURL.replace(
                     "/thumbs/",
                     "/");
-            imageURLs.add(imageURL);
+            imageURLs.add(new DownloadItem(imageURL));
         }
         System.out.println("Found" + imageURLs.size() + " image urls");
         return imageURLs;
     }
 
     @Override
-    protected void downloadURL(URL url, int index) {
+    protected void downloadURL(DownloadItem downloadItem, int index) {
         String prefix = "";
         if (Utils.getConfigBoolean("download.save_order", true)) {
             prefix = String.format("%03d_", index);
         }
-        addURLToDownload(url, prefix);
+        addURLToDownload(downloadItem, prefix);
     }
 
     @Override

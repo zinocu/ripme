@@ -14,6 +14,7 @@ import org.json.JSONObject;
 import org.json.JSONTokener;
 
 import com.rarchives.ripme.ripper.AlbumRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.ui.UpdateUtils;
 import com.rarchives.ripme.utils.Http;
 import com.rarchives.ripme.utils.RipUtils;
@@ -77,8 +78,6 @@ public class RedditRipper extends AlbumRipper {
         }
         waitForThreads();
     }
-
-
 
     private URL getAndParseAndReturnNext(URL url) throws IOException {
         JSONArray jsonArray = getJsonArrayFromURL(url), children;
@@ -215,7 +214,7 @@ public class RedditRipper extends AlbumRipper {
         }
     }
 
-    private URL parseRedditVideoMPD(String vidURL) {
+    private DownloadItem parseRedditVideoMPD(String vidURL) {
         org.jsoup.nodes.Document doc = null;
         try {
             doc = Http.url(vidURL + "/DASHPlaylist.mpd").ignoreContentType().get();
@@ -232,7 +231,7 @@ public class RedditRipper extends AlbumRipper {
                     baseURL = doc.select("MPD > Period > AdaptationSet > Representation[height=" + height + "]").select("BaseURL").text();
                 }
             }
-            return new URL(vidURL + "/" + baseURL);
+            return new DownloadItem(vidURL + "/" + baseURL);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -257,28 +256,29 @@ public class RedditRipper extends AlbumRipper {
             }
         }
 
-        List<URL> urls = RipUtils.getFilesFromURL(originalURL);
+        List<DownloadItem> urls = RipUtils.getFilesFromURL(originalURL);
         if (urls.size() == 1) {
-            String url = urls.get(0).toExternalForm();
+            DownloadItem first = urls.get(0);
+            String url = first.url.toExternalForm();
             Pattern p = Pattern.compile("https?://i.reddituploads.com/([a-zA-Z0-9]+)\\?.*");
             Matcher m = p.matcher(url);
             if (m.matches()) {
                 // It's from reddituploads. Assume .jpg extension.
                 String savePath = this.workingDir + File.separator;
                 savePath += id + "-" + m.group(1) + title + ".jpg";
-                addURLToDownload(urls.get(0), new File(savePath));
+                addURLToDownload(first, new File(savePath));
             }
             if (url.contains("v.redd.it")) {
                 String savePath = this.workingDir + File.separator;
                 savePath += id + "-" + url.split("/")[3] + title + ".mp4";
-                URL urlToDownload = parseRedditVideoMPD(urls.get(0).toExternalForm());
+                DownloadItem urlToDownload = parseRedditVideoMPD(first.url.toExternalForm());
                 if (urlToDownload != null) {
                     LOGGER.info("url: " + urlToDownload + " file: " + savePath);
                     addURLToDownload(urlToDownload, new File(savePath));
                 }
             }
             else {
-                addURLToDownload(urls.get(0), id + title, "", theUrl, null);
+                addURLToDownload(first, id + title, "", theUrl, null);
             }
         } else if (urls.size() > 1) {
             for (int i = 0; i < urls.size(); i++) {

@@ -10,7 +10,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.ripper.VideoRipper;
 import com.rarchives.ripme.utils.Http;
 
@@ -72,7 +72,7 @@ public class TwitchVideoRipper extends VideoRipper {
             Matcher m = p.matcher(element.data());
             if (m.find()){
                 String vidUrl = m.group(1);
-                addURLToDownload(new URL(vidUrl), HOST + "_" + title);
+                addURLToDownload(new DownloadItem(vidUrl), HOST + "_" + title);
             }
         }
         waitForThreads();

@@ -13,6 +13,7 @@ import org.json.JSONObject;
 import org.json.JSONArray;
 
 import com.rarchives.ripme.ripper.AbstractJSONRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 
 /**
@@ -41,13 +42,14 @@ public class FolioRipper extends AbstractJSONRipper {
         if (m.matches()) {
             return m.group(1);
         }
-        throw new MalformedURLException("Expected folio.ink URL format: " +
-            "folio.ink/albumid (e.g: folio.ink/DmBe6i) - got " + url + " instead");
+        throw new MalformedURLException("Expected folio.ink URL format: "
+                + "folio.ink/albumid (e.g: folio.ink/DmBe6i) - got " + url + " instead");
     }
 
     @Override
     public JSONObject getFirstPage() throws IOException {
-        String jsonArrayString = Http.url("https://folio.ink/getimages/" + getGID(url)).ignoreContentType().response().body();
+        String jsonArrayString = Http.url("https://folio.ink/getimages/" + getGID(url)).ignoreContentType().response()
+                .body();
         JSONArray imagesArray = new JSONArray(jsonArrayString);
         JSONObject imagesObject = new JSONObject();
         imagesObject.put("images", imagesArray);
@@ -56,20 +58,20 @@ public class FolioRipper extends AbstractJSONRipper {
     }
 
     @Override
-    public List<String> getURLsFromJSON(JSONObject json) {
-        List<String> result = new ArrayList<String>();
+    public List<DownloadItem> getURLsFromJSON(JSONObject json) throws MalformedURLException {
+        List<DownloadItem> result = new ArrayList<>();
         JSONArray imagesArray = json.getJSONArray("images");
 
         for (int i = 0; i < imagesArray.length(); i++) {
             JSONObject image = imagesArray.getJSONObject(i);
-            result.add(image.getString("image_url"));
+            result.add(new DownloadItem(image.getString("image_url")));
         }
 
         return result;
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index));
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index));
     }
 }

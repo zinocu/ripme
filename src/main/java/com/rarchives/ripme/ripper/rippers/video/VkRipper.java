@@ -8,6 +8,7 @@ import java.util.regex.Pattern;
 
 import org.jsoup.nodes.Document;
 
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.ripper.VideoRipper;
 import com.rarchives.ripme.utils.Http;
 
@@ -54,7 +55,7 @@ public class VkRipper extends VideoRipper {
     public void rip() throws IOException {
         LOGGER.info("    Retrieving " + this.url);
         String videoURL = getVideoURLAtPage(this.url.toExternalForm());
-        addURLToDownload(new URL(videoURL), HOST + "_" + getGID(this.url));
+        addURLToDownload(new DownloadItem(videoURL), HOST + "_" + getGID(this.url));
         waitForThreads();
     }
 

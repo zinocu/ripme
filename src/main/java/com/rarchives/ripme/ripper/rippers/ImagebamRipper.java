@@ -1,6 +1,7 @@
 package com.rarchives.ripme.ripper.rippers;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.ripper.DownloadThreadPool;
 import com.rarchives.ripme.utils.Http;
 import com.rarchives.ripme.utils.Utils;
@@ -78,17 +79,17 @@ public class ImagebamRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> imageURLs = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> imageURLs = new ArrayList<>();
         for (Element thumb : doc.select("div > a[target=_blank]:not(.footera)")) {
-            imageURLs.add(thumb.attr("href"));
+            imageURLs.add(new DownloadItem(thumb.attr("href")));
         }
         return imageURLs;
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        ImagebamImageThread t = new ImagebamImageThread(url, index);
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        ImagebamImageThread t = new ImagebamImageThread(downloadItem, index);
         imagebamThreadPool.addThread(t);
         sleep(500);
     }
@@ -119,12 +120,12 @@ public class ImagebamRipper extends AbstractHTMLRipper {
      * Handles case when site has IP-banned the user.
      */
     private class ImagebamImageThread extends Thread {
-        private URL url; //link to "image page"
+        private DownloadItem downloadItem; //link to "image page"
         private int index; //index in album
 
-        ImagebamImageThread(URL url, int index) {
+        ImagebamImageThread(DownloadItem downloadItem, int index) {
             super();
-            this.url = url;
+            this.downloadItem = downloadItem;
             this.index = index;
         }
 
@@ -138,7 +139,7 @@ public class ImagebamRipper extends AbstractHTMLRipper {
          */
         private void fetchImage() {
             try {
-                Document doc = Http.url(url).get();
+                Document doc = Http.url(downloadItem.url).get();
                 // Find image
                 Elements metaTags = doc.getElementsByTag("meta");
                 
@@ -155,7 +156,7 @@ public class ImagebamRipper extends AbstractHTMLRipper {
                
                 //for debug, or something goes wrong.
                 if (imgsrc.isEmpty()) {
-                    LOGGER.warn("Image not found at " + this.url);
+                    LOGGER.warn("Image not found at " + this.downloadItem.url);
                     return;
                 }
                
@@ -165,9 +166,9 @@ public class ImagebamRipper extends AbstractHTMLRipper {
                     prefix = String.format("%03d_", index);
                 }
                 
-                addURLToDownload(new URL(imgsrc), prefix);
+                addURLToDownload(new DownloadItem(new URL(imgsrc)), prefix);
             } catch (IOException e) {
-                LOGGER.error("[!] Exception while loading/parsing " + this.url, e);
+                LOGGER.error("[!] Exception while loading/parsing " + this.downloadItem.url, e);
             }
         }
     }

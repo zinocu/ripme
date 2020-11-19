@@ -12,6 +12,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.utils.Http;
 
 public class JagodibujaRipper extends AbstractHTMLRipper {
@@ -47,8 +48,8 @@ public class JagodibujaRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> result = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> result = new ArrayList<>();
         for (Element comicPageUrl : doc.select("div.gallery-icon > a")) {
             // Check if the ripper has been stopped
             try {
@@ -62,12 +63,12 @@ public class JagodibujaRipper extends AbstractHTMLRipper {
                 Element elem = comicPage.select("span.full-size-link > a").first();
                 LOGGER.info("Got link " + elem.attr("href"));
                 try {
-                    addURLToDownload(new URL(elem.attr("href")), "");
+                    addURLToDownload(new DownloadItem(elem.attr("href")), "");
                 } catch (MalformedURLException e) {
                     LOGGER.warn("Malformed URL");
                     e.printStackTrace();
                 }
-                result.add(elem.attr("href"));
+                result.add(new DownloadItem(elem.attr("href")));
             } catch (IOException e) {
                 LOGGER.info("Error loading " + comicPageUrl);
             }
@@ -76,7 +77,7 @@ public class JagodibujaRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
+    public void downloadURL(DownloadItem downloadItem, int index) {
         // sleep(500);
         // addURLToDownload(url, getPrefix(index));
     }

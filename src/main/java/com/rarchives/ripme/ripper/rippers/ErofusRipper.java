@@ -1,6 +1,7 @@
 package com.rarchives.ripme.ripper.rippers;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.ui.RipStatusMessage;
 import com.rarchives.ripme.utils.Http;
 import org.jsoup.nodes.Document;
@@ -54,9 +55,9 @@ public class ErofusRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document page) {
+    public List<DownloadItem> getURLsFromPage(Document page) throws MalformedURLException {
         LOGGER.info(page);
-        List<String> imageURLs = new ArrayList<>();
+        List<DownloadItem> imageURLs = new ArrayList<>();
         int x = 1;
         if (pageContainsImages(page)) {
             LOGGER.info("Page contains images");
@@ -72,7 +73,7 @@ public class ErofusRipper extends AbstractHTMLRipper {
                         LOGGER.info("Retrieving " + subUrl);
                         sendUpdate(RipStatusMessage.STATUS.LOADING_RESOURCE, subUrl);
                         Document subPage = Http.url(subUrl).get();
-                        List<String> subalbumImages = getURLsFromPage(subPage);
+                        List<DownloadItem> subalbumImages = getURLsFromPage(subPage);
                     } catch (IOException e) {
                         LOGGER.warn("Error while loading subalbum " + subUrl, e);
                     }
@@ -94,7 +95,7 @@ public class ErofusRipper extends AbstractHTMLRipper {
                 Map<String,String> opts = new HashMap<String, String>();
                 opts.put("subdirectory", page.title().replaceAll(" \\| Erofus - Sex and Porn Comics", "").replaceAll(" ", "_"));
                 opts.put("prefix", getPrefix(x));
-                addURLToDownload(new URL(image), opts);
+                addURLToDownload(new DownloadItem(new URL(image), 0), opts);
             } catch (MalformedURLException e) {
                 LOGGER.info(e.getMessage());
             }
@@ -113,7 +114,7 @@ public class ErofusRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index));
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index));
     }
 }

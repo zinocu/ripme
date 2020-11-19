@@ -1,6 +1,5 @@
 package com.rarchives.ripme.ripper.rippers;
 
-
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -10,6 +9,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.rarchives.ripme.ripper.AbstractHTMLRipper;
+import com.rarchives.ripme.ripper.DownloadItem;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.jsoup.nodes.Document;
@@ -73,8 +74,8 @@ public class GfycatRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public void downloadURL(URL url, int index) {
-        addURLToDownload(url, getPrefix(index));
+    public void downloadURL(DownloadItem downloadItem, int index) {
+        addURLToDownload(downloadItem, getPrefix(index));
     }
 
     @Override
@@ -112,13 +113,14 @@ public class GfycatRipper extends AbstractHTMLRipper {
     }
 
     @Override
-    public List<String> getURLsFromPage(Document doc) {
-        List<String> result = new ArrayList<>();
+    public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
+        List<DownloadItem> result = new ArrayList<>();
         if (isProfile()) {
             JSONObject page = new JSONObject(stripHTMLTags(doc.html()));
             JSONArray content = page.getJSONArray("gfycats");
             for (int i = 0; i < content.length(); i++) {
-                result.add(content.getJSONObject(i).getString("mp4Url"));
+                String link = content.getJSONObject(i).getString("mp4Url");
+                result.add(new DownloadItem(link));
             }
             cursor = page.getString("cursor");
         } else {
@@ -127,7 +129,8 @@ public class GfycatRipper extends AbstractHTMLRipper {
                 String json = el.html();
                 if (json.startsWith("{")) {
                     JSONObject page = new JSONObject(json);
-                    result.add(page.getJSONObject("video").getString("contentUrl"));
+                    String link = page.getJSONObject("video").getString("contentUrl");
+                    result.add(new DownloadItem(link));
                 }
             }
         }

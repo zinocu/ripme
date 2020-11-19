@@ -8,12 +8,12 @@ import java.util.regex.Pattern;
 
 import org.json.JSONObject;
 
+import com.rarchives.ripme.ripper.DownloadItem;
 import com.rarchives.ripme.ripper.VideoRipper;
 import com.rarchives.ripme.utils.Base64;
 import com.rarchives.ripme.utils.Http;
 
 public class CliphunterRipper extends VideoRipper {
-
     private static final String HOST = "cliphunter";
     private static final String decryptString="{'$':':','&':'.','(':'=','-':'-','_':'_','^':'&','a':'h','c':'c','b':'b','e':'v','d':'e','g':'f','f':'o','i':'d','m':'a','l':'n','n':'m','q':'t','p':'u','r':'s','w':'w','v':'p','y':'l','x':'r','z':'i','=':'/','?':'?'}";
     private static final JSONObject decryptDict = new JSONObject(decryptString);
@@ -71,7 +71,7 @@ public class CliphunterRipper extends VideoRipper {
                 vidURL += c;
             }
         }
-        addURLToDownload(new URL(vidURL), HOST + "_" + getGID(this.url));
+        addURLToDownload(new DownloadItem(vidURL), HOST + "_" + getGID(this.url));
         waitForThreads();
     }
 }
