@@ -83,7 +83,7 @@ public class RipperDownloadHistory {
             
             fw = new FileWriter(urlHistoryFile.getAbsoluteFile(), true);
             bw = new BufferedWriter(fw);
-            bw.write(item.toString());
+            bw.write(item.toString() + "\n");
         } catch (IOException e) {
             LOGGER.debug("Unable to write URL history file");
             e.printStackTrace();

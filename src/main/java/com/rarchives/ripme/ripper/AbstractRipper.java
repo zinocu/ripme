@@ -115,6 +115,7 @@ public abstract class AbstractRipper
         }
         this.url = sanitizeURL(url);
         this.shouldGetUploadTime = Utils.getConfigBoolean("download.image_upload_time", false);
+        this.downloadHistory = new RipperDownloadHistory(Utils.getConfigDir() + "/history_" + getHost() + ".txt");
     }
 
     /**
@@ -136,6 +137,7 @@ public abstract class AbstractRipper
         }
 
         this.threadPool = new DownloadThreadPool();
+        this.downloadHistory.loadHistoryFile();
     }
 
     public void setObserver(RipStatusHandler obs) {
