@@ -73,7 +73,7 @@ public class AllporncomicRipper extends AbstractHTMLRipper {
         }
         
         for (Element el : doc.select(".wp-manga-chapter-img")) {
-            result.add(new DownloadItem(new URL(el.attr("src")), uploadTime));
+            result.add(new DownloadItem(new URL(el.attr("data-src")), uploadTime));
         }
         
         return result;
