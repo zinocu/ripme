@@ -64,18 +64,11 @@ public class ErotivRipper extends AbstractHTMLRipper {
     @Override
     public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
         List<DownloadItem> results = new ArrayList<>();
-        for (Element el : doc.select("video[id=\"video-id\"] > source")) {
-            if (el.hasAttr("src")) {
-                Pattern p = Pattern.compile("/uploads/[0-9]*\\.mp4");
-                Matcher m = p.matcher(el.attr("src"));
-                if (m.matches()) {
-                    results.add(new DownloadItem("https://erotiv.io" + el.attr("src")));
-                }
-            }
-
+        Element el = doc.select("video[id=\"player\"] > source").first();
+        if (el.hasAttr("src")) {
+            results.add(new DownloadItem("https://erotiv.io" + el.attr("src")));
         }
         return results;
-
     }
 
     @Override
