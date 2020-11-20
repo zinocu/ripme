@@ -51,8 +51,9 @@ public class FemjoyhunterRipper extends AbstractHTMLRipper {
     @Override
     public List<DownloadItem> getURLsFromPage(Document doc) throws MalformedURLException {
         List<DownloadItem> result = new ArrayList<>();
-        for (Element el : doc.select("img")) {
-            result.add(new DownloadItem(el.attr("src")));
+        Element container = doc.select("div.list-justified-container").first();
+        for (Element el : container.select("a")) {
+            result.add(new DownloadItem(el.attr("href")));
         }
         return result;
     }
